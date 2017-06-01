@@ -1,0 +1,38 @@
+OBTENER UBICACIÓN
+Dispositivo -> Servidor HTTP:
+<getubicacion>
+<IP>10.5.6.1</IP>
+</getubicacion >
+
+Servidor HTTP -> Dispositivo:
+<resultado>
+<IP>10.5.6.1</IP>
+<lista>
+<ubicacion>
+<codigo>01</codigo>
+<nombre>Nave 6 Laboratorio 1</nombre>
+</ubicacion>
+<ubicacion>
+<codigo>02</codigo>
+<nombre>Nave 6 Laboratorio 2</nombre>
+</ubicacion>
+</lista>
+</resultado>
+
+REGISTRO DE TARJETA
+Dispositivo -> Servidor HTTP:
+<registro>
+<firma>
+<IP>10.5.6.255</IP>
+<tiempo>30/09/2014 22:28:19</tiempo>
+<codigo-tarjeta>00352738</codigo-tarjeta>
+</firma>
+</registro>
+
+Servidor HTTP -> Dispositivo:
+<resultado>
+<registro>3615</registro>
+<tiempoServidor>24/09/2014 14:29:28</tiempoServidor>
+<documento>28766639</documento>
+<nombre>D\xc3\xb1a. MARIA DEL CARMEN ROMERO TERNERO</nombre>
+</resultado>
