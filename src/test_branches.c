@@ -1,3 +1,5 @@
 /*
-Test branches b1 comment added in master
+
+Test branches b1 comment conflict fixed
+
 */
