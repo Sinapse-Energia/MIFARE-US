@@ -1,4 +1,3 @@
 /*
-Test branches b1 master
-
+Test branches b1 master merged
 */
