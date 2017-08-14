@@ -56,6 +56,8 @@
 #define SDA_GPIO_Port GPIOB
 #define BUZZER_Pin GPIO_PIN_9
 #define BUZZER_GPIO_Port GPIOB
+#define LED_STATUS_Pin GPIO_PIN_15
+#define LED_STATUS_GPIO_Port GPIOA
 
 /* USER CODE BEGIN Private defines */
 
