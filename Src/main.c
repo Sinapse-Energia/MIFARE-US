@@ -36,6 +36,7 @@
   ******************************************************************************
   */
 /* Includes ------------------------------------------------------------------*/
+#include <southbound_mifare.h>
 #include "main.h"
 #include "stm32f0xx_hal.h"
 
@@ -75,15 +76,15 @@ static void MX_USART1_UART_Init(void);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
-
+uint8_t WDT_ENABLED=1;
 /* USER CODE END 0 */
 
 int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-	char *contador = "SINAPSE ENERGIA S.L.";
-  /* USER CODE END 1 */
+
+	/* USER CODE END 1 */
 
   /* MCU Configuration----------------------------------------------------------*/
 
@@ -104,46 +105,38 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_I2C1_Init();
-  //MX_IWDG_Init();
+  MX_IWDG_Init();
   MX_TIM6_Init();
   MX_TIM7_Init();
   MX_USART1_UART_Init();
 
+
   /* USER CODE BEGIN 2 */
-  ssd1306_Init();
-  HAL_Delay(1000);
-  ssd1306_Fill(Black);
-  ssd1306_UpdateScreen();
+  LCD_Init();
+  LCD_Write_String(Normal);
+  LCD_Write_String(Reading);
+  LCD_Write_String(Registered);
+  LCD_Write_String(Not_Registered);
 
-  HAL_Delay(1000);
-
-	ssd1306_SetCursor(1,2);
-	ssd1306_WriteString("Not Registered",Font_7x10,White);
-	ssd1306_SetCursor(1,19);
-	ssd1306_WriteString("in server (Error)",Font_7x10,White);
-	//ssd1306_SetCursor(1,36);
-	//ssd1306_WriteString("integrada",Font_11x18,White);
-
-	ssd1306_UpdateScreen();
-  /* USER CODE END 2 */
+   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  //while (1)
- // {
+  while (1)
+ {
   /* USER CODE END WHILE */
 
 	  //LED_STATUS pin test
-	 /* HAL_GPIO_WritePin(LED_STATUS_GPIO_Port, LED_STATUS_Pin, GPIO_PIN_SET);
+	  HAL_GPIO_WritePin(LED_STATUS_GPIO_Port, LED_STATUS_Pin, GPIO_PIN_SET);
 	  HAL_Delay(1000);
 	  HAL_GPIO_WritePin(LED_STATUS_GPIO_Port, LED_STATUS_Pin, GPIO_PIN_RESET);
-	  HAL_Delay(1000);*/
-
+	  HAL_Delay(1000);
+	  if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
 	  ///////////////////
 
   /* USER CODE BEGIN 3 */
 
-  //}
+  }
   /* USER CODE END 3 */
 
 }
