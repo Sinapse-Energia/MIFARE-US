@@ -43,6 +43,7 @@
 /* USER CODE BEGIN Includes */
 #include "ssd1306.h"
 #include "fonts.h"
+#include "southbound_generic.h"
 
 /* USER CODE END Includes */
 
@@ -72,11 +73,12 @@ static void MX_USART1_UART_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
-
+#define WIFI_UART_HANDLE huart1
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
 uint8_t WDT_ENABLED=1;
+uint8_t i = 0;
 /* USER CODE END 0 */
 
 int main(void)
@@ -113,10 +115,10 @@ int main(void)
 
   /* USER CODE BEGIN 2 */
   LCD_Init();
-  //LCD_Write_mifare_info(Not_Registered);
-  //LCD_Write_String(Reading);
-  //LCD_Write_String(Registered);
- // LCD_Write_String(Not_Registered);
+  LCD_Write_mifare_info(Not_Registered);
+
+  //MFRC522_Init();
+
 
    /* USER CODE END 2 */
 
@@ -127,10 +129,10 @@ int main(void)
   /* USER CODE END WHILE */
 
 	  //LED_STATUS pin test
-	  HAL_GPIO_WritePin(LED_STATUS_GPIO_Port, LED_STATUS_Pin, GPIO_PIN_SET);
-	  HAL_Delay(1000);
-	  HAL_GPIO_WritePin(LED_STATUS_GPIO_Port, LED_STATUS_Pin, GPIO_PIN_RESET);
-	  HAL_Delay(1000);
+	  HAL_UART_Transmit(&WIFI_UART_HANDLE,(const char*)"Probando modulo RM08S\r\n",23,100);
+	  Blink_LED_Status(Reading);
+	  HAL_Delay(5000);
+	  //Buzzer_Control(2);
 	  if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
 	  ///////////////////
 
@@ -315,6 +317,7 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(LED_STATUS_GPIO_Port, LED_STATUS_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin : BUZZER_Pin */
   GPIO_InitStruct.Pin = BUZZER_Pin;

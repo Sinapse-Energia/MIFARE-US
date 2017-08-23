@@ -2,12 +2,16 @@
  * southbound_generic.c
  *
  *  Created on: 21 ago. 2017
- *      Author: BARCELONA2
+ *      Author: FLG
  */
 
+/*Includes*/
 #include "southbound_generic.h"
+#include "ssd1306.h"
+#include "fonts.h"
 
-
+///////////////////////////////////////////////////////////////////////////////////////
+/* Internal FLASH memory functions */
 int MIC_Flash_Memory_Write(const uint8_t *data_in, uint32_t size)
 {
 	HAL_StatusTypeDef status = HAL_ERROR;
@@ -55,7 +59,6 @@ int MIC_Flash_Memory_Read(const uint8_t *data_out, uint32_t size)
 
 }
 
-///////////////// Flash functions.
 HAL_StatusTypeDef FlashNVM_ErasePage(uint32_t page)
 {
 
@@ -153,4 +156,39 @@ HAL_StatusTypeDef FlashNVM_Write(uint32_t start_address, const uint8_t* data_in,
 
 	return status;
 }
+///////////////////////////////////////////////////////////////////////////////////////////////
 
+////////////////////////////////////////////////////////////////////////////////////////
+/* Generic function thats write 1/0 over GPIO_Pin*/
+void MIC_Set_Digital_Output_status(GPIO_Pin_Select pin, PIN_Status status)
+{
+	switch (pin)
+	{
+		case 0:
+
+			if(status == 0) HAL_GPIO_WritePin(LED_STATUS_GPIO_Port, LED_STATUS_Pin, GPIO_PIN_RESET);
+			if(status == 1) HAL_GPIO_WritePin(LED_STATUS_GPIO_Port, LED_STATUS_Pin, GPIO_PIN_SET);
+			break;
+
+		case 1:
+
+			if(status == 0) HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
+			if(status == 1) HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_SET);
+			break;
+	}
+}
+//////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+/**/
+ void LCD_Set_Parameters(void)
+{
+	ssd1306_Init();
+}
+
+
+void LCD_Write_String(char *string)
+{
+	ssd1306_WriteString(string, Font_7x10, Black);
+	ssd1306_UpdateScreen();
+}

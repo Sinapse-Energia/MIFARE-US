@@ -2,7 +2,7 @@
  * southbound_generic.h
  *
  *  Created on: 21 ago. 2017
- *      Author: BARCELONA2
+ *      Author: FLG
  */
 
 #ifndef SOUTHBOUND_SOUTHBOUND_GENERIC_H_
@@ -26,7 +26,22 @@ int MIC_Flash_Memory_Write(const uint8_t *data_in, uint32_t size);
 int MIC_Flash_Memory_Read(const uint8_t *data_out, uint32_t size);
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+typedef enum {
+	OFF = 0, ON = 1
+}PIN_Status;
 
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+/*LCD functions definitions*/
+void LCD_Set_Parameters(void);
+void LCD_Write_String(char *string);
+
+
+typedef enum {
+	LED_Status_Pin = 0, Buzzer_Pin = 1
+}GPIO_Pin_Select;
+
+void MIC_Set_Digital_Output_status(GPIO_Pin_Select pin, PIN_Status status);
 
 #ifdef __cplusplus /* If this is a C++ compiler, use C linkage */
 }
