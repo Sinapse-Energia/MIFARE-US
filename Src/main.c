@@ -44,6 +44,8 @@
 #include "ssd1306.h"
 #include "fonts.h"
 #include "southbound_generic.h"
+#include "stdio.h"
+
 
 /* USER CODE END Includes */
 
@@ -56,7 +58,7 @@ TIM_HandleTypeDef htim6;
 TIM_HandleTypeDef htim7;
 
 UART_HandleTypeDef huart1;
-
+UART_HandleTypeDef huart5;
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 
@@ -70,21 +72,34 @@ static void MX_IWDG_Init(void);
 static void MX_TIM6_Init(void);
 static void MX_TIM7_Init(void);
 static void MX_USART1_UART_Init(void);
+static void MX_USART5_UART_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
 #define WIFI_UART_HANDLE huart1
+#define RFID_UART_HANDLE huart5
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
-uint8_t WDT_ENABLED=1;
+uint8_t WDT_ENABLED=0;
 uint8_t i = 0;
+
+uint8_t UartRFID = 0;
+unsigned char bufferReception[100];
+uint8_t  data = 0;
+uint16_t BufferReceptionCounter = 0;
+unsigned char messageRX[100];
+uint8_t timeout = 0;
+HLKStatus HLK_Status;
 /* USER CODE END 0 */
 
 int main(void)
 {
 
   /* USER CODE BEGIN 1 */
+	//unsigned char cmd1[4] = {0xAB, 0x02,0x01};
+
+	//AddChkCode(cmd1);
 
 	/* USER CODE END 1 */
 
@@ -107,17 +122,41 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_I2C1_Init();
-  MX_IWDG_Init();
+  //MX_IWDG_Init();
   MX_TIM6_Init();
   MX_TIM7_Init();
   MX_USART1_UART_Init();
-
+  MX_USART5_UART_Init();
 
   /* USER CODE BEGIN 2 */
+  /*Initialize, Set LCD Display config  and show status message*/
   LCD_Init();
-  LCD_Write_mifare_info(Not_Registered);
+  /*Read Context parameters from FLASH*/
+  //MIC_Flash_Memory_Read((const uint8_t *) &Context, sizeof(Context));
+  HLK_Status = HK_Set_Config(&huart1, 2, 100, 500, messageRX);
+  if(HLK_Status == 0) LCD_Write_mifare_info(4);
+  /*NTP Synchronization: Read time from server and set into uC RTC*/
+  //TCP_IP_Connect();
+  //TCP_IP_Get_Data()
+  //MIC_Set_RTC();
 
-  //MFRC522_Init();
+  /*Update Context: Read Flash Memory and update context if necessary */
+  //MIC_Flash_Memory_Read();
+  //MIC_Flash_Memory_Write();
+ // HK_Set_Connection_Settings();
+
+  //LCD_Write_mifare_info();
+ /* HAL_GPIO_WritePin(ES0_GPIO_Port, ES0_Pin, GPIO_PIN_RESET);
+ HAL_Delay(2500);
+ HAL_GPIO_WritePin(ES0_GPIO_Port, ES0_Pin, GPIO_PIN_SET);
+  HAL_Delay(2000);*/
+
+  //sendingATCommands(&huart1, 100, 500, 11,(uint8_t*) "at+Dhcpd=1\r\n", mensajeRX);
+
+  /*MIC_UART_Send_Data(&huart1,(uint8_t*)"at+Dhcpd=0\r\n",12,100);
+  MIC_UART_Send_Data(&huart1,(uint8_t*)"at+Save=1\r\n",11,100);
+  MIC_UART_Send_Data(&huart1,(uint8_t*)"at+Apply=1\r\n",12,100);
+  MIC_UART_Send_Data(&huart1,(uint8_t*)"at+Reboot=1\r\n",13,100);*/
 
 
    /* USER CODE END 2 */
@@ -127,14 +166,59 @@ int main(void)
   while (1)
  {
   /* USER CODE END WHILE */
+	  if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
+	  /*Waiting for UART Interrupt*/
+
+	  // if (flag_interrupt == 1)
+	  //{
+	  	  /*Reading MIFARE card: block 3, sector 16, key FFFFFFFFFFFF*/
+	  	  //RFID_Read_Memory_Block();
+
+	  	  // if(RFID_OK)
+		  //{
+	  	  	  /*Beep & Update LCD*/
+	  	  	  //Blink_LED_Status(Reading);
+	  	  	  //Buzzer_Control();
+
+	  	  	  /*Create the HTTP message, connect to HTTP server and send HTTP msg*/
+	  	  	  //TCP_IP_Connect();
+	  	  	  //TCP_Send_Data();
+
+	  	  	  /*Wait for server response until timeout*/
+	  	  	  // if(response_OK)
+	  	  	  //{
+	  	  	  	  /*Beep & Update LCD*/
+	  	  	  	  //Blink_LED_Status(Reading);
+	  	  	  	  //Buzzer_Control();
+	  	  	  // else (response_NOK)
+	  	  	  // {
+				  	  /*Beep & Update LCD*/
+	  	  	  	  	  //Blink_LED_Status(Reading);
+	  	  	  	  	  //Buzzer_Control();
+	  	  	  // }
+	  	  //}
+	  	  //else (RFID_NOK)
+	  	  //{
+	  	  	  	  /*Beep & Update LCD*/
+				  //Blink_LED_Status(Reading);
+				  //Buzzer_Control();
+	  	  //}
+	  //}
+	  // else (flag_interrupt != 1)
+	  //{
+	  	  	  /*Update LCD Display*/
+		  	  //LCD_Write_mifare_info();
+	  //}
 
 	  //LED_STATUS pin test
-	  HAL_UART_Transmit(&WIFI_UART_HANDLE,(const char*)"Probando modulo RM08S\r\n",23,100);
-	  Blink_LED_Status(Reading);
-	  HAL_Delay(5000);
-	  //Buzzer_Control(2);
-	  if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
-	  ///////////////////
+	  //HAL_UART_Transmit(&huart5,(const char*)"Testing RM08S module\r\n",22,100);
+	 //HAL_UART_Transmit(&huart1,(uint8_t*)"at+Netmode=1\r",13,100);
+	 // HAL_UART_Transmit(&huart1,(uint8_t*)"at+Save=1\r\n",11,100);
+	  //HAL_UART_Transmit(&huart1,(uint8_t*)"at+Apply=1\r\n",12,100);
+	 // HAL_UART_Transmit(&huart1,(uint8_t*)"at+Reboot=1\r\n",13,100);
+
+
+
 
   /* USER CODE BEGIN 3 */
 
@@ -298,6 +382,27 @@ static void MX_USART1_UART_Init(void)
 
 }
 
+
+/* USART5 init function */
+static void MX_USART5_UART_Init(void)
+{
+
+  huart5.Instance = USART5;
+  huart5.Init.BaudRate = 9600;
+  huart5.Init.WordLength = UART_WORDLENGTH_8B;
+  huart5.Init.StopBits = UART_STOPBITS_1;
+  huart5.Init.Parity = UART_PARITY_NONE;
+  huart5.Init.Mode = UART_MODE_TX_RX;
+  huart5.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart5.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart5.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart5.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart5) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+}
 /** Configure pins as 
         * Analog 
         * Input 
@@ -316,15 +421,15 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(LED_STATUS_GPIO_Port, LED_STATUS_Pin, GPIO_PIN_SET);
+  //HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
+  //HAL_GPIO_WritePin(LED_STATUS_GPIO_Port, LED_STATUS_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin : BUZZER_Pin */
-  GPIO_InitStruct.Pin = BUZZER_Pin;
+  GPIO_InitStruct.Pin = BUZZER_Pin | ES0_Pin | ES1_Pin ;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-  HAL_GPIO_Init(BUZZER_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin : GPIOX13_Pin */
     GPIO_InitStruct.Pin = LED_STATUS_Pin;
@@ -333,12 +438,55 @@ static void MX_GPIO_Init(void)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
     HAL_GPIO_Init(LED_STATUS_GPIO_Port, &GPIO_InitStruct);
 
+    /*Configure GPIO pin : GPIOX13_Pin */
+	GPIO_InitStruct.Pin = PORST_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
 }
 
 
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
 
+  if (huart->Instance==WIFI_UART_HANDLE.Instance)
+ {
+
+	  //USART_ClearITPendingBit(USARTx, USART_IT_TC);
+	  //	USART_ClearITPendingBit(USARTx, USART_IT_RXNE);
+	  //UartRFID =1;
+
+	 bufferReception[BufferReceptionCounter]=data;
+	 BufferReceptionCounter=(BufferReceptionCounter+1)%100;
+	 HAL_UART_Receive_IT(huart,&data,1);
+  }
+
+}
 /* USER CODE BEGIN 4 */
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart1)
+{
+  //Disable_All_INT();
 
+  if (huart1->Instance==WIFI_UART_HANDLE->Instance)
+  {
+	  UartRFID =1;
+  }
+  //Enable_All_INT();
+
+}
+
+
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
+{
+	if (huart->ErrorCode == HAL_UART_ERROR_ORE)
+	{
+	   //remove the error condition
+		huart->ErrorCode = HAL_UART_ERROR_NONE;
+		huart->RxState = HAL_UART_STATE_BUSY_RX;
+	}
+}
 /* USER CODE END 4 */
 
 /**
@@ -355,6 +503,20 @@ void _Error_Handler(char * file, int line)
   }
   /* USER CODE END Error_Handler_Debug */ 
 }
+
+//XOR function calculator
+void AddChkCode(unsigned char *Cmd)
+{
+	unsigned char xorRes = Cmd[1];
+	uint8_t i = 0;
+
+	for ( i = 0; i < Cmd[1] - 1; i++)
+	{
+		xorRes = xorRes^Cmd[i+2];
+	}
+	Cmd[Cmd[1]+1] = xorRes;
+}
+
 
 #ifdef USE_FULL_ASSERT
 

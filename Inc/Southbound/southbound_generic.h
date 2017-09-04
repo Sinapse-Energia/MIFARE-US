@@ -14,6 +14,8 @@ extern "C" {
 
 #include "stm32f0xx_hal.h"
 
+
+
 //// Flash init Address
 #define ADDR_FLASH_PAGE_127    ((uint32_t)0x0803f800) /* last flash sector 2k */
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -38,10 +40,16 @@ void LCD_Write_String(char *string);
 
 
 typedef enum {
-	LED_Status_Pin = 0, Buzzer_Pin = 1
+	LED_Status_Pin = 0, Buzzer_Pin = 1, ES0_UART0 = 2
 }GPIO_Pin_Select;
 
 void MIC_Set_Digital_Output_status(GPIO_Pin_Select pin, PIN_Status status);
+
+uint8_t MIC_UART_Send_Data(UART_HandleTypeDef *huart, unsigned char* messageTX, uint8_t lengthOfmessage, uint32_t timeoutTX);
+uint8_t MIC_UART_Get_Data(UART_HandleTypeDef *huart, unsigned char* messageRX, uint8_t Size);
+
+
+
 
 #ifdef __cplusplus /* If this is a C++ compiler, use C linkage */
 }

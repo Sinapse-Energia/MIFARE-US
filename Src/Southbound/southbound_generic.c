@@ -175,12 +175,17 @@ void MIC_Set_Digital_Output_status(GPIO_Pin_Select pin, PIN_Status status)
 			if(status == 0) HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
 			if(status == 1) HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_SET);
 			break;
+
+		case 2:
+
+			if(status == 0) HAL_GPIO_WritePin(ES0_GPIO_Port, ES0_Pin, GPIO_PIN_RESET);
+			if(status == 1) HAL_GPIO_WritePin(ES0_GPIO_Port, ES0_Pin, GPIO_PIN_SET);
 	}
 }
 //////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////
-/**/
+/*SB generic function to manage LCD Display*/
  void LCD_Set_Parameters(void)
 {
 	ssd1306_Init();
@@ -192,3 +197,17 @@ void LCD_Write_String(char *string)
 	ssd1306_WriteString(string, Font_7x10, Black);
 	ssd1306_UpdateScreen();
 }
+////////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+/* SB generic function to transmit and receive data via UART*/
+uint8_t MIC_UART_Send_Data(UART_HandleTypeDef *huart, unsigned char* messageTX, uint8_t lengthOfmessage, uint32_t timeoutTX)
+{
+	HAL_UART_Transmit(huart, messageTX,lengthOfmessage, timeoutTX);
+}
+
+uint8_t MIC_UART_Get_Data(UART_HandleTypeDef *huart, unsigned char* messageRX, uint8_t Size)
+{
+	HAL_UART_Receive_IT(huart, messageRX, Size);
+}
+

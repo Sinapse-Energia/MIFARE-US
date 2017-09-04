@@ -50,6 +50,10 @@
 #define txMicro_GPIO_Port GPIOA
 #define rxMicro_Pin GPIO_PIN_10
 #define rxMicro_GPIO_Port GPIOA
+#define txRFID_Pin GPIO_PIN_3
+#define txRFID_GPIO_Port GPIOB
+#define rxRFID_Pin GPIO_PIN_4
+#define rxRFID_GPIO_Port GPIOB
 #define SCL_Pin GPIO_PIN_6
 #define SCL_GPIO_Port GPIOB
 #define SDA_Pin GPIO_PIN_7
@@ -59,6 +63,14 @@
 #define LED_STATUS_Pin GPIO_PIN_15
 #define LED_STATUS_GPIO_Port GPIOA
 
+#define ES0_Pin GPIO_PIN_1
+#define ES0_GPIO_Port GPIOB
+#define ES1_Pin GPIO_PIN_0
+#define ES1_GPIO_Port GPIOB
+#define PERST_Pin GPIO_PIN_14
+#define PERST_GPIO_Port GPIOC
+#define PORST_Pin GPIO_PIN_13
+#define PORST_GPIO_Port GPIOC
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
