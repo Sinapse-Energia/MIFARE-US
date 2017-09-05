@@ -13,8 +13,16 @@ extern "C" {
 #endif
 
 #include "stm32f0xx_hal.h"
+#include "string.h"
 
 
+extern UART_HandleTypeDef huart1;
+extern unsigned char messageRX[100];
+extern char bufferReception[100];
+extern uint8_t  data;
+extern uint16_t BufferReceptionCounter;
+extern IWDG_HandleTypeDef hiwdg;
+extern uint8_t timeout;
 
 //// Flash init Address
 #define ADDR_FLASH_PAGE_127    ((uint32_t)0x0803f800) /* last flash sector 2k */
@@ -48,8 +56,26 @@ void MIC_Set_Digital_Output_status(GPIO_Pin_Select pin, PIN_Status status);
 uint8_t MIC_UART_Send_Data(UART_HandleTypeDef *huart, unsigned char* messageTX, uint8_t lengthOfmessage, uint32_t timeoutTX);
 uint8_t MIC_UART_Get_Data(UART_HandleTypeDef *huart, unsigned char* messageRX, uint8_t Size);
 
+typedef enum {
+	UART0_to_ETH = 0
+}HK_Working_Mode;
 
+typedef enum {
+	HK_OK = 0, HK_UART_FAIL = -1
+} HKStatus;
 
+HKStatus HK_Set_Config (HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32_t retries,
+		uint32_t timeoutTx, uint32_t timeoutRx, unsigned char *messageRX);
+
+HKStatus HK_Connect(HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32_t retries,
+		uint32_t timeoutTx, uint32_t timeoutRx, unsigned char *messageRX);
+
+HKStatus HK_Get_Config(HK_Working_Mode mode, UART_HandleTypeDef *phuart1, uint32_t retries,
+		uint32_t timeoutTx, uint32_t timeoutRx, unsigned char *messageRX);
+
+uint8_t sendingATCommands(UART_HandleTypeDef *phuart1, uint32_t timeoutTx,
+		uint32_t timeoutRx, uint32_t numberOfReceivedBytes,
+		unsigned char *messageTX, unsigned char *messageRX);
 
 #ifdef __cplusplus /* If this is a C++ compiler, use C linkage */
 }

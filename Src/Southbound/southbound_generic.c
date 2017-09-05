@@ -7,8 +7,11 @@
 
 /*Includes*/
 #include "southbound_generic.h"
+#include "southbound_mifare.h"
 #include "ssd1306.h"
 #include "fonts.h"
+#include "Definitions.h"
+#include "string.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 /* Internal FLASH memory functions */
@@ -209,5 +212,513 @@ uint8_t MIC_UART_Send_Data(UART_HandleTypeDef *huart, unsigned char* messageTX, 
 uint8_t MIC_UART_Get_Data(UART_HandleTypeDef *huart, unsigned char* messageRX, uint8_t Size)
 {
 	HAL_UART_Receive_IT(huart, messageRX, Size);
+}
+
+
+HKStatus HK_Set_Config (HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32_t retries,
+		uint32_t timeoutTx, uint32_t timeoutRx, unsigned char *messageRX)
+{
+	uint8_t responseOK = 0;
+	uint8_t retries_counter = 0;
+	char msgTX[50];
+	for (int i=0; i<50;i++) msgTX[i]=0;
+	switch(mode)
+	{
+		case UART0_to_ETH:
+
+			//RESET ES0 pin less 6 seconds to select UART0 interface
+			MIC_Set_Digital_Output_status(2,0);
+			HAL_Delay(2500);
+			MIC_Set_Digital_Output_status(2,1);
+			HAL_Delay(1000);
+
+			HAL_IWDG_Refresh(&hiwdg);
+
+			//Network mode settings: 0 default, 1 ETH, 2 WIFI STA, 3 WIFI AP, 4 WIFI AP Client
+			while ((retries_counter < retries) & (responseOK == 0))
+			{
+				strcpy(msgTX ,"at+Netmode=1\r\n");
+				sendingATCommands(phuart, timeoutTx, timeoutRx, 13, (uint8_t *)msgTX,
+						messageRX);
+
+				if(strstr((const char *)bufferReception, (const char *)"at+RNetmode")) responseOK = 1;
+				else retries_counter++;
+			}
+
+			if (responseOK == 0)  return HK_UART_FAIL;
+
+			CleanBufferReception();
+			retries_counter = 0;
+			responseOK = 0;
+			HAL_IWDG_Refresh(&hiwdg);
+
+			//Set the WAN port IP address acquisition mode: 0 Dynamic (default), 1 Static
+			while ((retries_counter < retries) & (responseOK == 0))
+			{
+				strcpy(msgTX,"at+Dhcpc=0\r\n");
+				sendingATCommands(&huart1, timeoutTx, timeoutRx, 11,(uint8_t*) msgTX,
+						messageRX);
+
+				if(strstr((const char *)bufferReception, (const char *)"at+RDhcpc")) responseOK = 1;
+				else retries_counter++;
+			}
+
+			if (responseOK == 0)  return HK_UART_FAIL;
+
+			CleanBufferReception();
+			retries_counter = 0;
+			responseOK = 0;
+			HAL_IWDG_Refresh(&hiwdg);
+
+			//Set the static IP address of the WAN port
+			while ((retries_counter < retries) & (responseOK == 0))
+			{
+				strcpy(msgTX, "at+WANIp=");
+				strcat(msgTX,IP_Device);
+				strcat(msgTX, "\r\n");
+				sendingATCommands(&huart1, timeoutTx, timeoutRx, 23,(uint8_t*) msgTX,
+						messageRX);
+
+				if(strstr((const char *)bufferReception, (const char *)"at+RWANIp")) responseOK = 1;
+				else retries_counter++;
+			}
+
+			if (responseOK == 0)  return HK_UART_FAIL;
+
+			CleanBufferReception();
+			retries_counter = 0;
+			responseOK = 0;
+			HAL_IWDG_Refresh(&hiwdg);
+
+			//Set the Subnet mask of the WAN port static IP
+			while ((retries_counter < retries) & (responseOK == 0))
+			{
+				strcpy(msgTX, "at+WANIpMask=");
+				strcat(msgTX,IP_Mask);
+				strcat(msgTX, "\r\n");
+				sendingATCommands(&huart1, timeoutTx, timeoutRx, 27,(uint8_t*) msgTX,
+						messageRX);
+
+				if(strstr((const char *)bufferReception, (const char *)"at+RWANIpMask")) responseOK = 1;
+				else retries_counter++;
+			}
+
+			if (responseOK == 0)  return HK_UART_FAIL;
+
+			CleanBufferReception();
+			retries_counter = 0;
+			responseOK = 0;
+			HAL_IWDG_Refresh(&hiwdg);
+
+			//Set the WAN port static Ip gateway
+			while ((retries_counter < retries) & (responseOK == 0))
+			{
+				strcpy(msgTX, "at+SGw=");
+				strcat(msgTX,IP_Gateway);
+				strcat(msgTX, "\r\n");
+				sendingATCommands(&huart1, timeoutTx, timeoutRx, 19,(uint8_t*)msgTX,
+						messageRX);
+
+				if(strstr((const char *)bufferReception, (const char *)"at+RSGw")) responseOK = 1;
+				else retries_counter++;
+			}
+
+			if (responseOK == 0)  return HK_UART_FAIL;
+
+			CleanBufferReception();
+			retries_counter = 0;
+			responseOK = 0;
+			HAL_IWDG_Refresh(&hiwdg);
+
+			//Set static main DNS
+			while ((retries_counter < retries) & (responseOK == 0))
+			{
+				strcpy(msgTX, "at+SDnsF=");
+				strcat(msgTX,IP_Dns);
+				strcat(msgTX, "\r\n");
+				sendingATCommands(&huart1, timeoutTx, timeoutRx, 21,(uint8_t*) msgTX,
+						messageRX);
+
+				if(strstr((const char *)bufferReception, (const char *)"at+RSDnsF")) responseOK = 1;
+				else retries_counter++;
+			}
+
+			if (responseOK == 0) return HK_UART_FAIL;
+
+			CleanBufferReception();
+			retries_counter = 0;
+			responseOK = 0;
+			//HAL_IWDG_Refresh(&hiwdg);
+
+			//Set serial Baudrate: 115200 default
+			while ((retries_counter < retries) & (responseOK == 0))
+			{
+				strcpy(msgTX, "at+SBaud0=115200\r\n");
+				sendingATCommands(&huart1, timeoutTx, timeoutRx, 17,(uint8_t*) msgTX,
+						messageRX);
+
+				if(strstr((const char *)bufferReception, (const char *)"at+RSBaud0")) responseOK = 1;
+				else retries_counter++;
+
+			}
+
+			if (responseOK == 0) return HK_UART_FAIL;
+
+			CleanBufferReception();
+			retries_counter = 0;
+			responseOK = 0;
+			HAL_IWDG_Refresh(&hiwdg);
+
+			//Set serial data length: default value 8
+			while ((retries_counter < retries) & (responseOK == 0))
+			{
+				strcpy(msgTX, "at+SWidth0=8\r\n");
+				sendingATCommands(&huart1, timeoutTx, timeoutRx, 13,(uint8_t*) msgTX,
+						messageRX);
+
+				if(strstr((const char *)bufferReception, (const char *)"at+RSWidth0")) responseOK = 1;
+				else retries_counter++;
+			}
+
+			if (responseOK == 0) return HK_UART_FAIL;
+
+			CleanBufferReception();
+			retries_counter = 0;
+			responseOK = 0;
+			HAL_IWDG_Refresh(&hiwdg);
+
+			//Set serial check parity: 0 default
+			while ((retries_counter < retries) & (responseOK == 0))
+			{
+				strcpy(msgTX, "at+SPari0=0\r\n");
+				sendingATCommands(&huart1, timeoutTx, timeoutRx, 12,(uint8_t*) msgTX,
+						messageRX);
+
+				if(strstr((const char *)bufferReception, (const char *)"at+RSPari0")) responseOK = 1;
+				else retries_counter++;
+
+			}
+
+			if (responseOK == 0) return HK_UART_FAIL;
+
+			CleanBufferReception();
+			retries_counter = 0;
+			responseOK = 0;
+			HAL_IWDG_Refresh(&hiwdg);
+
+			//Set serial stop length: 1 default
+			while ((retries_counter < retries) & (responseOK == 0))
+			{
+				strcpy(msgTX, "at+SStop0=1\r\n");
+				sendingATCommands(&huart1, timeoutTx, timeoutRx, 12,(uint8_t*) msgTX,
+						messageRX);
+
+				if(strstr((const char *)bufferReception, (const char *)"at+RSStop0")) responseOK = 1;
+				else retries_counter++;
+
+			}
+
+			if (responseOK == 0) return HK_UART_FAIL;
+
+			CleanBufferReception();
+			retries_counter = 0;
+			responseOK = 0;
+			HAL_IWDG_Refresh(&hiwdg);
+	}
+
+	/*After sending the configuration command must be saved and then submitted*/
+	//Save settings
+	while ((retries_counter < retries) & (responseOK == 0))
+	{
+		strcpy(msgTX,"at+Save=1\r\n");
+		sendingATCommands(&huart1, timeoutTx, timeoutRx, 10,(uint8_t*) msgTX,
+				messageRX);
+
+		if(strstr((const char *)bufferReception, (const char *)"at+RSave")) responseOK = 1;
+		else retries_counter++;
+	}
+
+	if (responseOK == 0) return HK_UART_FAIL;
+
+	CleanBufferReception();
+	retries_counter = 0;
+	responseOK = 0;
+	HAL_IWDG_Refresh(&hiwdg);
+
+	//Apply settings
+	while ((retries_counter < retries) & (responseOK == 0))
+	{
+		strcpy(msgTX,"at+Apply=1\r\n");
+		sendingATCommands(&huart1, timeoutTx, timeoutRx, 11,(uint8_t*) msgTX,
+				messageRX);
+
+		if(strstr((const char *)bufferReception, (const char *)"at+RApply")) responseOK = 1;
+		else retries_counter++;
+
+	}
+
+	if (responseOK == 0) return HK_UART_FAIL;
+
+	CleanBufferReception();
+	retries_counter = 0;
+	responseOK = 0;
+	HAL_IWDG_Refresh(&hiwdg);
+
+	//Reboot it's necessary. No response is expected
+	sendingATCommands(&huart1, timeoutTx, timeoutRx, 0,(uint8_t*) "at+Reboot=1\r\n",messageRX);
+	CleanBufferReception();
+
+	return HK_OK;
+}
+
+
+HKStatus HK_Get_Config(HK_Working_Mode mode, UART_HandleTypeDef *phuart1, uint32_t retries, uint32_t timeoutTx, uint32_t timeoutRx, unsigned char *messageRX)
+{
+
+	uint8_t responseOK = 0;
+	uint8_t retries_counter = 0;
+	char *buffer=NULL;
+	char msgTX[50];
+		for (int i=0; i<50;i++) msgTX[i]=0;
+
+
+	switch(mode)
+	{
+
+		case UART0_to_ETH:
+
+			//Select UART0 to send AT messages
+			MIC_Set_Digital_Output_status(2,0);
+			HAL_Delay(2500);
+			MIC_Set_Digital_Output_status(2,1);
+			HAL_Delay(1000);
+
+			//Read the static IP address of the WAN Port
+			while ((retries_counter < retries) & (responseOK == 0))
+			{
+				strcpy(msgTX,"at+WANIp=?\r\n");
+				sendingATCommands(&huart1, timeoutTx, timeoutRx, 20, (uint8_t*) msgTX,
+						messageRX);
+
+				if(strstr((const char *)bufferReception, (const char *)"at+RWANIp")) responseOK = 1;
+				else retries_counter++;
+
+			}
+			if (responseOK == 0)	return HK_UART_FAIL;
+
+			//Response OK, save the IP into Context.
+			else
+			{
+				buffer = bufferReception+10;
+				char erase[4] = "\r\n";
+
+				buffer= strtok (buffer, erase);
+				strcpy(Context.IP, buffer);
+
+			}
+			CleanBufferReception();
+			retries_counter = 0;
+			responseOK = 0;
+			HAL_IWDG_Refresh(&hiwdg);
+
+			while ((retries_counter < retries) & (responseOK == 0))
+			{
+				strcpy(msgTX,"at+NDomain0=?\r\n");
+				sendingATCommands(&huart1, timeoutTx, timeoutRx, 20, (uint8_t*) msgTX,
+						messageRX);
+
+				if(strstr((const char *)bufferReception, (const char *)"at+RNDomain0")) responseOK = 1;
+				else retries_counter++;
+
+			}
+			if (responseOK == 0)	return HK_UART_FAIL;
+
+			//Response OK, save the IP into Context.
+			else
+			{
+				buffer = bufferReception+13;
+				char erase[4] = "\r\n";
+
+				buffer= strtok (buffer, erase);
+				strcpy(Context.IP_server, buffer);
+
+			}
+			CleanBufferReception();
+			retries_counter = 0;
+			responseOK = 0;
+			HAL_IWDG_Refresh(&hiwdg);
+			break;
+	}
+
+	return HK_OK;
+}
+
+
+HKStatus HK_Connect(HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32_t retries,
+		uint32_t timeoutTx, uint32_t timeoutRx, unsigned char *messageRX)
+{
+	uint8_t responseOK = 0;
+	uint8_t retries_counter = 0;
+	char msgTX[50];
+	for (int i=0; i<50;i++) msgTX[i]=0;
+
+	switch(mode)
+	{
+		case UART0_to_ETH:
+
+			//RESET ES0 pin less 6 seconds to select UART0 interface
+			MIC_Set_Digital_Output_status(2,0);
+			HAL_Delay(2500);
+			MIC_Set_Digital_Output_status(2,1);
+			HAL_Delay(1000);
+
+			HAL_IWDG_Refresh(&hiwdg);
+
+			//Set Transparency Socket protocol Type
+			while ((retries_counter < retries) & (responseOK == 0))
+			{
+				strcpy(msgTX,"at+NProType0=2\r\n");
+				sendingATCommands(&huart1, timeoutTx, timeoutRx, 15,(uint8_t*)msgTX ,
+						messageRX);
+
+				if(strstr((const char *)bufferReception, (const char *)"at+RNProType0")) responseOK = 1;
+				else retries_counter++;
+			}
+
+			if (responseOK == 0)  return HK_UART_FAIL;
+
+			CleanBufferReception();
+			retries_counter = 0;
+			responseOK = 0;
+			HAL_IWDG_Refresh(&hiwdg);
+
+			//Set socket remote domain name or IP
+			while ((retries_counter < retries) & (responseOK == 0))
+			{
+				strcpy(msgTX,"at+NDomain0=");
+				strcat(msgTX, IP_Server_Domain);
+				strcat(msgTX, "\r\n");
+				sendingATCommands(&huart1, timeoutTx, timeoutRx, 34,(uint8_t*) msgTX,
+						messageRX);
+
+				if(strstr((const char *)bufferReception, (const char *)"at+RNDomain0")) responseOK = 1;
+				else retries_counter++;
+			}
+
+			if (responseOK == 0)  return HK_UART_FAIL;
+
+			CleanBufferReception();
+			retries_counter = 0;
+			responseOK = 0;
+			HAL_IWDG_Refresh(&hiwdg);
+
+			//Set Socket remote terminal
+			while ((retries_counter < retries) & (responseOK == 0))
+			{
+				strcpy(msgTX,"at+NRPort0=");
+				strcat(msgTX, IP_Server_Port);
+				strcat(msgTX, "\r\n");
+				sendingATCommands(&huart1, timeoutTx, timeoutRx, 13,(uint8_t*) msgTX,
+						messageRX);
+
+				if(strstr((const char *)bufferReception, (const char *)"at+RNRPort0")) responseOK = 1;
+				else retries_counter++;
+			}
+
+			if (responseOK == 0)  return HK_UART_FAIL;
+
+			CleanBufferReception();
+			retries_counter = 0;
+			responseOK = 0;
+			HAL_IWDG_Refresh(&hiwdg);
+
+			//Set Socket local terminal
+			while ((retries_counter < retries) & (responseOK == 0))
+			{
+				strcpy(msgTX,"at+NLPort0=");
+				strcat(msgTX, IP_Local_Port);
+				strcat(msgTX, "\r\n");
+				sendingATCommands(&huart1, timeoutTx, timeoutRx, 17,(uint8_t*) msgTX,
+						messageRX);
+
+				if(strstr((const char *)bufferReception, (const char *)"at+RNLPort0")) responseOK = 1;
+				else retries_counter++;
+			}
+
+			if (responseOK == 0)  return HK_UART_FAIL;
+
+			CleanBufferReception();
+			retries_counter = 0;
+			responseOK = 0;
+			HAL_IWDG_Refresh(&hiwdg);
+
+			//Set Socket tcp connection time out
+			while ((retries_counter < retries) & (responseOK == 0))
+			{
+				strcpy(msgTX,"at+NTcpTo0=0\r\n");
+
+				sendingATCommands(&huart1, timeoutTx, timeoutRx, 14,(uint8_t*) msgTX,
+						messageRX);
+
+				if(strstr((const char *)bufferReception, (const char *)"at+RNTcpTo0")) responseOK = 1;
+				else retries_counter++;
+			}
+
+			if (responseOK == 0)  return HK_UART_FAIL;
+
+			CleanBufferReception();
+			retries_counter = 0;
+			responseOK = 0;
+			HAL_IWDG_Refresh(&hiwdg);
+
+			break;
+	}
+
+	/*After sending the configuration command must be saved and then submitted*/
+
+	//Save settings
+	while ((retries_counter < retries) & (responseOK == 0))
+	{
+		strcpy(msgTX,"at+Save=1\r\n");
+		sendingATCommands(&huart1, timeoutTx, timeoutRx, 10,(uint8_t*) msgTX,
+				messageRX);
+
+		if(strstr((const char *)bufferReception, (const char *)"at+RSave")) responseOK = 1;
+		else retries_counter++;
+	}
+
+	if (responseOK == 0)  return HK_UART_FAIL;
+
+	CleanBufferReception();
+	retries_counter = 0;
+	responseOK = 0;
+	HAL_IWDG_Refresh(&hiwdg);
+
+	//Apply settings
+	while ((retries_counter < retries) & (responseOK == 0))
+	{
+		strcpy(msgTX,"at+Apply=1\r\n");
+		sendingATCommands(&huart1, timeoutTx, timeoutRx, 11,(uint8_t*) msgTX,
+				messageRX);
+
+		if(strstr((const char *)bufferReception, (const char *)"at+RApply")) responseOK = 1;
+		else retries_counter++;
+
+	}
+
+	if (responseOK == 0)  return HK_UART_FAIL;
+
+	CleanBufferReception();
+	retries_counter = 0;
+	responseOK = 0;
+	HAL_IWDG_Refresh(&hiwdg);
+
+	//Reboot it's necessary. No response is expected
+	strcpy(msgTX,"at+Reboot=1\r\n");
+	sendingATCommands(&huart1, timeoutTx, timeoutRx, 0,(uint8_t*) msgTX,messageRX);
+
+	CleanBufferReception();
+
+	return HK_OK;
 }
 
