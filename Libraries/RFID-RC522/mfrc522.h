@@ -70,23 +70,27 @@
 //#include "tm_stm32f4_spi.h"
 //#include "defines.h"
 
-/**
- * Pinout
+/*
  *
- * Can be overwritten in defines.h file
+ * Following #defines are used by francisjjp to emulate SPI with 4 generic GPIO
+ *
  */
-/* Default SPI used */
-//#ifndef MFRC522_SPI
-//#define MFRC522_SPI						SPI1
-//#define MFRC522_SPI_PINSPACK			TM_SPI_PinsPack_2
-//#endif
 
-/* Default CS pin used */
-//#ifndef MFRC522_CS_PIN
-//#define MFRC522_CS_RCC					RCC_AHB1Periph_GPIOG
-//#define MFRC522_CS_PORT					GPIOG
-//#define MFRC522_CS_PIN					GPIO_Pin_2
-//#endif
+
+#define MFRC522_CS_PIN   		GPIO_PIN_13
+#define MFRC522_CLK_PIN  		GPIO_PIN_8
+#define MFRC522_MOSI_PIN 		GPIO_PIN_3
+#define MFRC522_MISO_PIN 		GPIO_PIN_4
+#define MFRC522_CS_PORT		GPIOB
+#define MFRC522_CLK_PORT	GPIOB
+#define MFRC522_MOSI_PORT	GPIOB
+#define MFRC522_MISO_PORT	GPIOB
+
+
+#define MFRC522_SELECT()   HAL_GPIO_WritePin(MFRC522_CS_PORT, MFRC522_CS_PIN,GPIO_PIN_RESET)//digitalWrite(SPICS, LOW)
+#define MFRC522_UNSELECT() HAL_GPIO_WritePin(MFRC522_CS_PORT, MFRC522_CS_PIN,GPIO_PIN_SET)//digitalWrite(SPICS, HIGH)
+
+
 
 /**
  * Status enumeration
@@ -200,7 +204,52 @@ typedef enum {
 
 #define MFRC522_MAX_LEN					16
 
+/**
+ * Check for RFID card existance
+ *
+ * Parameters:
+ * 	- uint8_t* id:
+ * 		Pointer to 5bytes long memory to store valid card id in.
+ * 		ID is valid only if card is detected, so when function returns MI_OK
+ *
+ * Returns MI_OK if card is detected
+ */
+extern TM_MFRC522_Status_t TM_MFRC522_Check(uint8_t* id);
 
+/**
+ * Compare 2 RFID ID's
+ * Useful if you have known ID (database with allowed IDs), to compare detected card with with your ID
+ *
+ * Parameters:
+ * 	- uint8_t* CardID:
+ * 		Pointer to 5bytes detected card ID
+ * 	- uint8_t* CompareID:
+ * 		Pointer to 5bytes your ID
+ *
+ * Returns MI_OK if IDs are the same, or MI_ERR if not
+ */
+extern TM_MFRC522_Status_t TM_MFRC522_Compare(uint8_t* CardID, uint8_t* CompareID);
+
+/**
+ * Private functions
+ */
+extern void TM_MFRC522_InitPins(void);
+extern void writeRegister(uint8_t addr, uint8_t val);
+extern uint8_t readRegister(uint8_t addr);
+extern void TM_MFRC522_SetBitMask(uint8_t reg, uint8_t mask);
+extern void TM_MFRC522_ClearBitMask(uint8_t reg, uint8_t mask);
+extern void TM_MFRC522_AntennaOn(void);
+extern void TM_MFRC522_AntennaOff(void);
+extern void TM_MFRC522_Reset(void);
+extern TM_MFRC522_Status_t TM_MFRC522_Request(uint8_t reqMode, uint8_t* TagType);
+extern TM_MFRC522_Status_t TM_MFRC522_ToCard(uint8_t command, uint8_t* sendData, uint8_t sendLen, uint8_t* backData, uint16_t* backLen);
+extern TM_MFRC522_Status_t TM_MFRC522_Anticoll(uint8_t* serNum);
+extern void TM_MFRC522_CalculateCRC(uint8_t* pIndata, uint8_t len, uint8_t* pOutData);
+extern uint8_t TM_MFRC522_SelectTag(uint8_t* serNum);
+extern TM_MFRC522_Status_t TM_MFRC522_Auth(uint8_t authMode, uint8_t BlockAddr, uint8_t* Sectorkey, uint8_t* serNum);
+extern TM_MFRC522_Status_t TM_MFRC522_Read(uint8_t blockAddr, uint8_t* recvData);
+extern TM_MFRC522_Status_t TM_MFRC522_Write(uint8_t blockAddr, uint8_t* writeData);
+extern void TM_MFRC522_Halt(void);
 
 #endif
 

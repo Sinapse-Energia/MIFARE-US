@@ -39,6 +39,7 @@
 #include <southbound_mifare.h>
 #include "main.h"
 #include "stm32f0xx_hal.h"
+#include "mfrc522.h"
 
 /* USER CODE BEGIN Includes */
 #include "ssd1306.h"
@@ -85,12 +86,13 @@ uint8_t WDT_ENABLED=0;
 uint8_t i = 0;
 
 uint8_t UartRFID = 0;
+uint8_t addressRFID,dataRFID;
 unsigned char bufferReception[100];
 uint8_t  data = 0;
 uint16_t BufferReceptionCounter = 0;
 unsigned char messageRX[100];
 uint8_t timeout = 0;
-HLKStatus HLK_Status;
+HKStatus HLK_Status;
 /* USER CODE END 0 */
 
 int main(void)
@@ -126,14 +128,69 @@ int main(void)
   MX_TIM6_Init();
   MX_TIM7_Init();
   MX_USART1_UART_Init();
-  MX_USART5_UART_Init();
+  //MX_USART5_UART_Init();
+
+  /// test NFC
+
+
+   if (1) // only check one register. =x37 register contains 0x92.-> version 2 NFC
+  {
+	  addressRFID= 0x37;
+	  dataRFID=readRegister(addressRFID);
+  }
+
+   if (0) // To check with real card.
+   {
+
+	   uint8_t CardID[5];
+	   uint8_t MyID[5]=  { 0x43, 0xdc, 0x52, 0xb6, 0x7b };// My card on my keys
+
+	   while (1) /// example with infinite loop
+	   {
+		  /// If any card detected
+
+		   if (TM_MFRC522_Check(CardID) == MI_OK)
+		   { // CardID is valid
+
+		      /// Check if this is my card
+
+			   if (TM_MFRC522_Compare(CardID,MyID)==MI_OK)
+			   {
+				   /// Detected my card.
+
+
+
+			   }
+			   else
+			   {
+				   // It is not my card.
+
+
+			   }
+		   }
+
+		   else
+		   {
+			   // Card not detected.
+
+		   }
+
+
+	   }
+
+
+
+
+   }
+
+
 
   /* USER CODE BEGIN 2 */
   /*Initialize, Set LCD Display config  and show status message*/
   LCD_Init();
   /*Read Context parameters from FLASH*/
   //MIC_Flash_Memory_Read((const uint8_t *) &Context, sizeof(Context));
-  HLK_Status = HK_Set_Config(&huart1, 2, 100, 500, messageRX);
+  //HLK_Status = HK_Set_Config(&huart1, 2, 100, 500, messageRX);
   if(HLK_Status == 0) LCD_Write_mifare_info(4);
   /*NTP Synchronization: Read time from server and set into uC RTC*/
   //TCP_IP_Connect();
@@ -423,6 +480,21 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   //HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
   //HAL_GPIO_WritePin(LED_STATUS_GPIO_Port, LED_STATUS_Pin, GPIO_PIN_SET);
+
+
+
+  /* configure output pins MIFARE RFID output */
+  GPIO_InitStruct.Pin =  MFRC522_CS_PIN | MFRC522_CLK_PIN | MFRC522_MOSI_PIN ;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin MIFARE RFID input */
+    GPIO_InitStruct.Pin = MFRC522_MISO_PIN;
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin : BUZZER_Pin */
   GPIO_InitStruct.Pin = BUZZER_Pin | ES0_Pin | ES1_Pin ;
