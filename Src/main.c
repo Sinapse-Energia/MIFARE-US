@@ -86,7 +86,7 @@ uint8_t WDT_ENABLED=0;
 uint8_t i = 0;
 
 uint8_t UartRFID = 0;
-char addressRFID,dataRFID;
+uint8_t addressRFID,dataRFID;
 unsigned char bufferReception[100];
 uint8_t  data = 0;
 uint16_t BufferReceptionCounter = 0;
@@ -132,12 +132,56 @@ int main(void)
 
   /// test NFC
 
-  //uint8_t addressRFID = (0x37|0x80); //if LSB is sent first in UART
-  //uint8_t addressRFID = (0xED); //if MSB is sent first in UART (this is 0x37|0x80 at oppsite)
 
-  addressRFID= (((0x37<<1)&0x7F)|0x80);
-  dataRFID=readRegister(addressRFID);
+   if (1) // only check one register. =x37 register contains 0x92.-> version 2 NFC
+  {
+	  addressRFID= 0x37;
+	  dataRFID=readRegister(addressRFID);
+  }
 
+   if (0) // To check with real card.
+   {
+
+	   uint8_t CardID[5];
+	   uint8_t MyID[5]=  { 0x43, 0xdc, 0x52, 0xb6, 0x7b };// My card on my keys
+
+	   while (1) /// example with infinite loop
+	   {
+		  /// If any card detected
+
+		   if (TM_MFRC522_Check(CardID) == MI_OK)
+		   { // CardID is valid
+
+		      /// Check if this is my card
+
+			   if (TM_MFRC522_Compare(CardID,MyID)==MI_OK)
+			   {
+				   /// Detected my card.
+
+
+
+			   }
+			   else
+			   {
+				   // It is not my card.
+
+
+			   }
+		   }
+
+		   else
+		   {
+			   // Card not detected.
+
+		   }
+
+
+	   }
+
+
+
+
+   }
 
 
 
