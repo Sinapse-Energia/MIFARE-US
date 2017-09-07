@@ -18,7 +18,7 @@ extern "C" {
 
 extern UART_HandleTypeDef huart1;
 extern unsigned char messageRX[100];
-extern char bufferReception[100];
+extern unsigned char bufferReception[100];
 extern uint8_t  data;
 extern uint16_t BufferReceptionCounter;
 extern IWDG_HandleTypeDef hiwdg;
