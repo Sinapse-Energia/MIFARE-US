@@ -5,8 +5,8 @@
  *      Author: FLG
  */
 
-#ifndef SOUTHBOUND_SOUTHBOUND_GENERIC_H_
-#define SOUTHBOUND_SOUTHBOUND_GENERIC_H_
+#ifndef SOUTHBOUND_GENERIC_H_
+#define SOUTHBOUND_GENERIC_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -14,11 +14,12 @@ extern "C" {
 
 #include "stm32f0xx_hal.h"
 #include "string.h"
+#include "Definitions.h"
 
 
 extern UART_HandleTypeDef huart1;
-extern unsigned char messageRX[100];
-extern unsigned char bufferReception[100];
+extern unsigned char messageRX[SIZE_BUFFER_HTTP];
+extern unsigned char bufferReception[SIZE_BUFFER_HTTP];
 extern uint8_t  data;
 extern uint16_t BufferReceptionCounter;
 extern IWDG_HandleTypeDef hiwdg;

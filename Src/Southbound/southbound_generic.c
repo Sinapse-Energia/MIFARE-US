@@ -13,6 +13,17 @@
 #include "Definitions.h"
 #include "string.h"
 
+extern char *IP_Device;
+extern char *IP_Mask;
+extern char *IP_Gateway;
+extern char *IP_Dns;
+
+extern char *IP_Server_Domain;
+extern char *IP_Server_Port;
+extern char *IP_Local_Port;
+
+extern uint8_t WDT_ENABLED;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 /* Internal FLASH memory functions */
 int MIC_Flash_Memory_Write(const uint8_t *data_in, uint32_t size)
@@ -232,7 +243,7 @@ HKStatus HK_Set_Config (HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32
 			MIC_Set_Digital_Output_status(2,1);
 			HAL_Delay(1000);
 
-			HAL_IWDG_Refresh(&hiwdg);
+			if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
 
 			//Network mode settings: 0 default, 1 ETH, 2 WIFI STA, 3 WIFI AP, 4 WIFI AP Client
 			while ((retries_counter < retries) & (responseOK == 0))
@@ -250,7 +261,8 @@ HKStatus HK_Set_Config (HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32
 			CleanBufferReception();
 			retries_counter = 0;
 			responseOK = 0;
-			HAL_IWDG_Refresh(&hiwdg);
+
+			if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
 
 			//Set the WAN port IP address acquisition mode: 0 Dynamic (default), 1 Static
 			while ((retries_counter < retries) & (responseOK == 0))
@@ -268,7 +280,7 @@ HKStatus HK_Set_Config (HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32
 			CleanBufferReception();
 			retries_counter = 0;
 			responseOK = 0;
-			HAL_IWDG_Refresh(&hiwdg);
+			if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
 
 			//Set the static IP address of the WAN port
 			while ((retries_counter < retries) & (responseOK == 0))
@@ -288,7 +300,8 @@ HKStatus HK_Set_Config (HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32
 			CleanBufferReception();
 			retries_counter = 0;
 			responseOK = 0;
-			HAL_IWDG_Refresh(&hiwdg);
+
+			if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
 
 			//Set the Subnet mask of the WAN port static IP
 			while ((retries_counter < retries) & (responseOK == 0))
@@ -308,7 +321,7 @@ HKStatus HK_Set_Config (HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32
 			CleanBufferReception();
 			retries_counter = 0;
 			responseOK = 0;
-			HAL_IWDG_Refresh(&hiwdg);
+			if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
 
 			//Set the WAN port static Ip gateway
 			while ((retries_counter < retries) & (responseOK == 0))
@@ -328,7 +341,7 @@ HKStatus HK_Set_Config (HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32
 			CleanBufferReception();
 			retries_counter = 0;
 			responseOK = 0;
-			HAL_IWDG_Refresh(&hiwdg);
+			if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
 
 			//Set static main DNS
 			while ((retries_counter < retries) & (responseOK == 0))
@@ -348,7 +361,7 @@ HKStatus HK_Set_Config (HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32
 			CleanBufferReception();
 			retries_counter = 0;
 			responseOK = 0;
-			//HAL_IWDG_Refresh(&hiwdg);
+			if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
 
 			//Set serial Baudrate: 115200 default
 			while ((retries_counter < retries) & (responseOK == 0))
@@ -367,7 +380,7 @@ HKStatus HK_Set_Config (HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32
 			CleanBufferReception();
 			retries_counter = 0;
 			responseOK = 0;
-			HAL_IWDG_Refresh(&hiwdg);
+			if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
 
 			//Set serial data length: default value 8
 			while ((retries_counter < retries) & (responseOK == 0))
@@ -385,7 +398,7 @@ HKStatus HK_Set_Config (HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32
 			CleanBufferReception();
 			retries_counter = 0;
 			responseOK = 0;
-			HAL_IWDG_Refresh(&hiwdg);
+			if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
 
 			//Set serial check parity: 0 default
 			while ((retries_counter < retries) & (responseOK == 0))
@@ -404,7 +417,7 @@ HKStatus HK_Set_Config (HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32
 			CleanBufferReception();
 			retries_counter = 0;
 			responseOK = 0;
-			HAL_IWDG_Refresh(&hiwdg);
+			if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
 
 			//Set serial stop length: 1 default
 			while ((retries_counter < retries) & (responseOK == 0))
@@ -423,7 +436,7 @@ HKStatus HK_Set_Config (HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32
 			CleanBufferReception();
 			retries_counter = 0;
 			responseOK = 0;
-			HAL_IWDG_Refresh(&hiwdg);
+			if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
 	}
 
 	/*After sending the configuration command must be saved and then submitted*/
@@ -443,7 +456,7 @@ HKStatus HK_Set_Config (HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32
 	CleanBufferReception();
 	retries_counter = 0;
 	responseOK = 0;
-	HAL_IWDG_Refresh(&hiwdg);
+	if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
 
 	//Apply settings
 	while ((retries_counter < retries) & (responseOK == 0))
@@ -462,7 +475,7 @@ HKStatus HK_Set_Config (HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32
 	CleanBufferReception();
 	retries_counter = 0;
 	responseOK = 0;
-	HAL_IWDG_Refresh(&hiwdg);
+	if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
 
 	//Reboot it's necessary. No response is expected
 	sendingATCommands(&huart1, timeoutTx, timeoutRx, 0,(uint8_t*) "at+Reboot=1\r\n",messageRX);
@@ -519,7 +532,7 @@ HKStatus HK_Get_Config(HK_Working_Mode mode, UART_HandleTypeDef *phuart1, uint32
 			CleanBufferReception();
 			retries_counter = 0;
 			responseOK = 0;
-			HAL_IWDG_Refresh(&hiwdg);
+			if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
 
 			while ((retries_counter < retries) & (responseOK == 0))
 			{
@@ -546,7 +559,7 @@ HKStatus HK_Get_Config(HK_Working_Mode mode, UART_HandleTypeDef *phuart1, uint32
 			CleanBufferReception();
 			retries_counter = 0;
 			responseOK = 0;
-			HAL_IWDG_Refresh(&hiwdg);
+			if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
 			break;
 	}
 
@@ -572,7 +585,7 @@ HKStatus HK_Connect(HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32_t r
 			MIC_Set_Digital_Output_status(2,1);
 			HAL_Delay(1000);
 
-			HAL_IWDG_Refresh(&hiwdg);
+			if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
 
 			//Set Transparency Socket protocol Type
 			while ((retries_counter < retries) & (responseOK == 0))
@@ -590,7 +603,7 @@ HKStatus HK_Connect(HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32_t r
 			CleanBufferReception();
 			retries_counter = 0;
 			responseOK = 0;
-			HAL_IWDG_Refresh(&hiwdg);
+			if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
 
 			//Set socket remote domain name or IP
 			while ((retries_counter < retries) & (responseOK == 0))
@@ -610,7 +623,7 @@ HKStatus HK_Connect(HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32_t r
 			CleanBufferReception();
 			retries_counter = 0;
 			responseOK = 0;
-			HAL_IWDG_Refresh(&hiwdg);
+			if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
 
 			//Set Socket remote terminal
 			while ((retries_counter < retries) & (responseOK == 0))
@@ -630,7 +643,7 @@ HKStatus HK_Connect(HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32_t r
 			CleanBufferReception();
 			retries_counter = 0;
 			responseOK = 0;
-			HAL_IWDG_Refresh(&hiwdg);
+			if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
 
 			//Set Socket local terminal
 			while ((retries_counter < retries) & (responseOK == 0))
@@ -650,7 +663,7 @@ HKStatus HK_Connect(HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32_t r
 			CleanBufferReception();
 			retries_counter = 0;
 			responseOK = 0;
-			HAL_IWDG_Refresh(&hiwdg);
+			if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
 
 			//Set Socket tcp connection time out
 			while ((retries_counter < retries) & (responseOK == 0))
@@ -669,7 +682,7 @@ HKStatus HK_Connect(HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32_t r
 			CleanBufferReception();
 			retries_counter = 0;
 			responseOK = 0;
-			HAL_IWDG_Refresh(&hiwdg);
+			if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
 
 			break;
 	}
@@ -692,7 +705,7 @@ HKStatus HK_Connect(HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32_t r
 	CleanBufferReception();
 	retries_counter = 0;
 	responseOK = 0;
-	HAL_IWDG_Refresh(&hiwdg);
+	if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
 
 	//Apply settings
 	while ((retries_counter < retries) & (responseOK == 0))
@@ -711,7 +724,7 @@ HKStatus HK_Connect(HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32_t r
 	CleanBufferReception();
 	retries_counter = 0;
 	responseOK = 0;
-	HAL_IWDG_Refresh(&hiwdg);
+	if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
 
 	//Reboot it's necessary. No response is expected
 	strcpy(msgTX,"at+Reboot=1\r\n");

@@ -46,6 +46,7 @@
 #include "fonts.h"
 #include "southbound_generic.h"
 #include "stdio.h"
+#include "Definitions.h"
 
 
 /* USER CODE END Includes */
@@ -87,13 +88,22 @@ uint8_t i = 0;
 
 uint8_t UartRFID = 0;
 uint8_t addressRFID,dataRFID;
-unsigned char bufferReception[100];
+unsigned char bufferReception[SIZE_BUFFER_HTTP];
 uint8_t  data = 0;
 uint16_t BufferReceptionCounter = 0;
-unsigned char messageRX[100];
+unsigned char messageRX[SIZE_BUFFER_HTTP];
 uint8_t timeout = 0;
-HKStatus HLK_Status;
+HKStatus HK_Status;
 /* USER CODE END 0 */
+
+char *IP_Device = "192.168.1.199";
+char *IP_Mask = "255.255.255.0";
+char *IP_Gateway = "192.168.1.1";
+char *IP_Dns = "192.168.1.1";
+
+char *IP_Server_Domain = "0.europe.pool.ntp.org";
+char *IP_Server_Port = "123";
+char *IP_Local_Port = "8080";
 
 int main(void)
 {
@@ -124,7 +134,16 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_I2C1_Init();
-  //MX_IWDG_Init();
+  if (WDT_ENABLED==1)
+  {
+
+
+	  	  MX_IWDG_Init();
+		__HAL_IWDG_START(&hiwdg); //no se inicializar watchdog, se deshabilita para debug
+		  HAL_IWDG_Refresh(&hiwdg);
+
+
+  }
   MX_TIM6_Init();
   MX_TIM7_Init();
   MX_USART1_UART_Init();
@@ -133,7 +152,7 @@ int main(void)
   /// test NFC
 
 
-   if (1) // only check one register. =x37 register contains 0x92.-> version 2 NFC
+   if (0) // only check one register. =x37 register contains 0x92.-> version 2 NFC
   {
 	  addressRFID= 0x37;
 	  dataRFID=readRegister(addressRFID);
@@ -185,104 +204,162 @@ int main(void)
 
 
 
-  /* USER CODE BEGIN 2 */
-  /*Initialize, Set LCD Display config  and show status message*/
-  LCD_Init();
-  /*Read Context parameters from FLASH*/
-  //MIC_Flash_Memory_Read((const uint8_t *) &Context, sizeof(Context));
-  //HLK_Status = HK_Set_Config(&huart1, 2, 100, 500, messageRX);
-  if(HLK_Status == 0) LCD_Write_mifare_info(4);
-  /*NTP Synchronization: Read time from server and set into uC RTC*/
-  //TCP_IP_Connect();
-  //TCP_IP_Get_Data()
-  //MIC_Set_RTC();
+   /* USER CODE BEGIN 2 */
+     /*Initialize, Set LCD Display config  and show status message*/
 
-  /*Update Context: Read Flash Memory and update context if necessary */
-  //MIC_Flash_Memory_Read();
-  //MIC_Flash_Memory_Write();
- // HK_Set_Connection_Settings();
+     LCD_Init();
+     /*Read Context parameters from FLASH*/
+     //MIC_Flash_Memory_Read((const uint8_t *) &Context, sizeof(Context));
+    // HK_Status = HK_Set_Config(0, &huart1, 2, 100, 500, messageRX);
+   // HAL_Delay(2000);
+    // HK_Status = HK_Connect(0, &huart1, 2, 100, 500, messageRX);
+     //HAL_Delay(2000);
+     //HK_Status = HK_Get_Config(0, &huart1, 2, 100, 500, messageRX);
+     //if(HK_Status == 0) LCD_Write_mifare_info(4);
+     /*NTP Synchronization: Read time from server and set into uC RTC*/
+     //TCP_IP_Connect();
+     //TCP_IP_Get_Data()
+     //MIC_Set_RTC();
 
-  //LCD_Write_mifare_info();
- /* HAL_GPIO_WritePin(ES0_GPIO_Port, ES0_Pin, GPIO_PIN_RESET);
- HAL_Delay(2500);
- HAL_GPIO_WritePin(ES0_GPIO_Port, ES0_Pin, GPIO_PIN_SET);
-  HAL_Delay(2000);*/
+     /*Update Context: Read Flash Memory and update context if necessary */
+     //MIC_Flash_Memory_Read();
+     //MIC_Flash_Memory_Write();
+    // HK_Set_Connection_Settings();
 
-  //sendingATCommands(&huart1, 100, 500, 11,(uint8_t*) "at+Dhcpd=1\r\n", mensajeRX);
+     //LCD_Write_mifare_info();
+    /* HAL_GPIO_WritePin(ES0_GPIO_Port, ES0_Pin, GPIO_PIN_RESET);
+    HAL_Delay(2500);
+    HAL_GPIO_WritePin(ES0_GPIO_Port, ES0_Pin, GPIO_PIN_SET);
+     HAL_Delay(2000);*/
+     MIC_Set_Digital_Output_status(2,0);
+       			HAL_Delay(2500);
+       			MIC_Set_Digital_Output_status(2,1);
+       			HAL_Delay(1000);
+     sendingATCommands(&huart1, 100, 500,14, (uint8_t *)"at+SAtMode0=0\r\n", messageRX);
+    /* sendingATCommands(&huart1, 100, 500,10, (uint8_t *)"at+Save=1\r\n", messageRX);
+     sendingATCommands(&huart1, 100, 500,11, (uint8_t *)"at+Apply=1\r\n", messageRX);
+     sendingATCommands(&huart1, 100, 500,0, (uint8_t *)"at+Reboot=1\r\n", messageRX);*/
+     CleanBufferReception();
+     //HAL_Delay(4000);
 
-  /*MIC_UART_Send_Data(&huart1,(uint8_t*)"at+Dhcpd=0\r\n",12,100);
-  MIC_UART_Send_Data(&huart1,(uint8_t*)"at+Save=1\r\n",11,100);
-  MIC_UART_Send_Data(&huart1,(uint8_t*)"at+Apply=1\r\n",12,100);
-  MIC_UART_Send_Data(&huart1,(uint8_t*)"at+Reboot=1\r\n",13,100);*/
+     //sendingATCommands(&huart1, 100, 500,14, (uint8_t *)"at+SAtMode0=?\r\n", messageRX);
+     LCD_Write_mifare_info(4);
+    // MIC_UART_Send_Data(&huart5,(uint8_t*),12,100);
+
+     /*MIC_Set_Digital_Output_status(2,0);
+     			HAL_Delay(2500);
+     			MIC_Set_Digital_Output_status(2,1);
+     			HAL_Delay(1000);*/
+     //MIC_UART_Send_Data(&huart1,(uint8_t*)"GET / HTTP/1.1\r\nHost: 192.168.1.164\r\n\r\n",39,100);
+    //sendingATCommands(&huart1,100, 500, 100,(uint8_t*)"GET /index.htm HTTP/1.1\r\nHost: 192.168.1.164\r\n\r\n",messageRX);
+
+     if (1) /// Testing getting data. This code part should be included when some RFID card is detected
+     {
 
 
-   /* USER CODE END 2 */
 
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-  while (1)
- {
-  /* USER CODE END WHILE */
-	  if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
-	  /*Waiting for UART Interrupt*/
+		CleanBufferReception();
+		while(1)
+		{
+			HAL_Delay(500);
+			MIC_UART_Get_Data(&huart1, &data, 1);
 
-	  // if (flag_interrupt == 1)
-	  //{
-	  	  /*Reading MIFARE card: block 3, sector 16, key FFFFFFFFFFFF*/
-	  	  //RFID_Read_Memory_Block();
+			MIC_UART_Send_Data(&huart1,(uint8_t*)"GET /index.htm HTTP/1.1\r\nHost: 192.168.1.164\r\n\r\n",48,100);
+			HAL_Delay(500);
+			//while (BufferReceptionCounter < 50)
+			//		;
+			if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
+			if (BufferReceptionCounter>0)
+			{
+				HAL_Delay(4000);
+				HAL_Delay(100);
+				CleanBufferReception();
 
-	  	  // if(RFID_OK)
-		  //{
-	  	  	  /*Beep & Update LCD*/
-	  	  	  //Blink_LED_Status(Reading);
-	  	  	  //Buzzer_Control();
-
-	  	  	  /*Create the HTTP message, connect to HTTP server and send HTTP msg*/
-	  	  	  //TCP_IP_Connect();
-	  	  	  //TCP_Send_Data();
-
-	  	  	  /*Wait for server response until timeout*/
-	  	  	  // if(response_OK)
-	  	  	  //{
-	  	  	  	  /*Beep & Update LCD*/
-	  	  	  	  //Blink_LED_Status(Reading);
-	  	  	  	  //Buzzer_Control();
-	  	  	  // else (response_NOK)
-	  	  	  // {
-				  	  /*Beep & Update LCD*/
-	  	  	  	  	  //Blink_LED_Status(Reading);
-	  	  	  	  	  //Buzzer_Control();
-	  	  	  // }
-	  	  //}
-	  	  //else (RFID_NOK)
-	  	  //{
-	  	  	  	  /*Beep & Update LCD*/
-				  //Blink_LED_Status(Reading);
-				  //Buzzer_Control();
-	  	  //}
-	  //}
-	  // else (flag_interrupt != 1)
-	  //{
-	  	  	  /*Update LCD Display*/
-		  	  //LCD_Write_mifare_info();
-	  //}
-
-	  //LED_STATUS pin test
-	  //HAL_UART_Transmit(&huart5,(const char*)"Testing RM08S module\r\n",22,100);
-	 //HAL_UART_Transmit(&huart1,(uint8_t*)"at+Netmode=1\r",13,100);
-	 // HAL_UART_Transmit(&huart1,(uint8_t*)"at+Save=1\r\n",11,100);
-	  //HAL_UART_Transmit(&huart1,(uint8_t*)"at+Apply=1\r\n",12,100);
-	 // HAL_UART_Transmit(&huart1,(uint8_t*)"at+Reboot=1\r\n",13,100);
+			}
+			if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
+		}
+	}
 
 
 
 
-  /* USER CODE BEGIN 3 */
 
-  }
-  /* USER CODE END 3 */
+    //MIC_UART_Send_Data(&huart1,(uint8_t*)&packet,48,100);
+   // HAL_UART_Receive(&huart1, messageRX, 100, 500);
+    /* MIC_UART_Send_Data(&huart1,(uint8_t*)"at+Reboot=1\r\n",13,100);*/
+    // MIC_UART_Send_Data(&huart1,(uint8_t*)"GET / HTTP/1.1\r\nHost: google.es\r\n\r\n",41,100);
+    // MIC_UART_Get_Data(&huart1, messageRX, 500);
+     //MIC_UART_Send_Data(&huart1,(uint8_t*)"Host: google.es",15,100);
+   	  Blink_LED_Status(Reading);
 
-}
+      /* USER CODE END 2 */
+
+     /* Infinite loop */
+     /* USER CODE BEGIN WHILE */
+     while (1)
+    {
+     /* USER CODE END WHILE */
+   	  if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
+   	  /*Waiting for UART Interrupt*/
+   	  //MIC_UART_Send_Data(&huart1,(uint8_t*)"GET / HTTP/1.1\r\nHost: 192.168.1.164\r\n\r\n",36,100);
+
+   	  // if (flag_interrupt == 1)
+   	  //{
+   	  	  /*Reading MIFARE card: block 3, sector 16, key FFFFFFFFFFFF*/
+   	  	  //RFID_Read_Memory_Block();
+
+   	  	  // if(RFID_OK)
+   		  //{
+   	  	  	  /*Beep & Update LCD*/
+   	  	  	  //Blink_LED_Status(Reading);
+   	  	  	  //Buzzer_Control();
+
+   	  	  	  /*Create the HTTP message, connect to HTTP server and send HTTP msg*/
+   	  	  	  //TCP_IP_Connect();
+   	  	  	  //TCP_Send_Data();
+
+   	  	  	  /*Wait for server response until timeout*/
+   	  	  	  // if(response_OK)
+   	  	  	  //{
+   	  	  	  	  /*Beep & Update LCD*/
+   	  	  	  	  //Blink_LED_Status(Reading);
+   	  	  	  	  //Buzzer_Control();
+   	  	  	  // else (response_NOK)
+   	  	  	  // {
+   				  	  /*Beep & Update LCD*/
+   	  	  	  	  	  //Blink_LED_Status(Reading);
+   	  	  	  	  	  //Buzzer_Control();
+   	  	  	  // }
+   	  	  //}
+   	  	  //else (RFID_NOK)
+   	  	  //{
+   	  	  	  	  /*Beep & Update LCD*/
+   				  //Blink_LED_Status(Reading);
+   				  //Buzzer_Control();
+   	  	  //}
+   	  //}
+   	  // else (flag_interrupt != 1)
+   	  //{
+   	  	  	  /*Update LCD Display*/
+   		  	  //LCD_Write_mifare_info();
+   	  //}
+
+   	  //LED_STATUS pin test
+   	  //HAL_UART_Transmit(&huart5,(const char*)"Testing RM08S module\r\n",22,100);
+   	 //HAL_UART_Transmit(&huart1,(uint8_t*)"at+Netmode=1\r",13,100);
+   	 // HAL_UART_Transmit(&huart1,(uint8_t*)"at+Save=1\r\n",11,100);
+   	  //HAL_UART_Transmit(&huart1,(uint8_t*)"at+Apply=1\r\n",12,100);
+   	 // HAL_UART_Transmit(&huart1,(uint8_t*)"at+Reboot=1\r\n",13,100);
+
+
+
+
+     /* USER CODE BEGIN 3 */
+
+     }
+     /* USER CODE END 3 */
+
+   }
 
 /** System Clock Configuration
 */
@@ -531,7 +608,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	  //UartRFID =1;
 
 	 bufferReception[BufferReceptionCounter]=data;
-	 BufferReceptionCounter=(BufferReceptionCounter+1)%100;
+	 BufferReceptionCounter=((BufferReceptionCounter+1)%SIZE_BUFFER_HTTP);
 	 HAL_UART_Receive_IT(huart,&data,1);
   }
 

@@ -81,10 +81,10 @@ void LCD_Write_mifare_info(Device_Status status)
 			LCD_Display_Update();
 			LCD_SetCursor(10,23);
 			LCD_Write_String(info_string);
-			LCD_SetCursor(10,33);
-			strcpy(info_string, Context.IP_server);
+			//LCD_SetCursor(10,33);
+			//strcpy(info_string, Context.IP_server);
 			//info_string = "IP server";
-			LCD_Write_String(info_string);
+			//LCD_Write_String(info_string);
 			break;
 	}
 
