@@ -101,6 +101,23 @@ void writeRegister(uint8_t address, uint8_t value)
  *
  *
  */
+void TM_MFRC522_Init(void) {
+
+	TM_MFRC522_Reset();
+
+	writeRegister(MFRC522_REG_T_MODE, 0x8D);
+	writeRegister(MFRC522_REG_T_PRESCALER, 0x3E);
+	writeRegister(MFRC522_REG_T_RELOAD_L, 30);
+	writeRegister(MFRC522_REG_T_RELOAD_H, 0);
+
+	/* 48dB gain */
+	writeRegister(MFRC522_REG_RF_CFG, 0x70);
+
+	writeRegister(MFRC522_REG_TX_AUTO, 0x40);
+	writeRegister(MFRC522_REG_MODE, 0x3D);
+
+	TM_MFRC522_AntennaOn();		//Open the antenna
+}
 
 TM_MFRC522_Status_t TM_MFRC522_Check(uint8_t* id) {
 	TM_MFRC522_Status_t status;
