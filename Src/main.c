@@ -94,6 +94,7 @@ uint16_t BufferReceptionCounter = 0;
 unsigned char messageRX[SIZE_BUFFER_HTTP];
 uint8_t timeout = 0;
 HKStatus HK_Status;
+char dataReceived[8];
 /* USER CODE END 0 */
 
 char *IP_Device = "192.168.1.199";
@@ -106,6 +107,8 @@ char *IP_Server_Port = "123";
 char *IP_Local_Port = "8080";
 
 int main(void)
+
+
 {
 
   /* USER CODE BEGIN 1 */
@@ -147,6 +150,7 @@ int main(void)
   MX_TIM6_Init();
   MX_TIM7_Init();
   MX_USART1_UART_Init();
+  TM_MFRC522_Init();
   //MX_USART5_UART_Init();
 
   /// test NFC
@@ -154,15 +158,18 @@ int main(void)
 
    if (0) // only check one register. =x37 register contains 0x92.-> version 2 NFC
   {
-	  addressRFID= 0x37;
+	  addressRFID= MFRC522_REG_COMM_IRQ;
 	  dataRFID=readRegister(addressRFID);
   }
 
-   if (0) // To check with real card.
+   if (1) // To check with real card.
    {
 
 	   uint8_t CardID[5];
-	   uint8_t MyID[5]=  { 0x43, 0xdc, 0x52, 0xb6, 0x7b };// My card on my keys
+	   //uint8_t MyID[5]=  { 0x43, 0xdc, 0x52, 0xb6, 0x7b };// My card on my keys
+	   uint8_t MyID[5]=  { 123, 192, 122, 199, 6 };// It seems that it is 'Domingo' identifier
+
+
 
 	   while (1) /// example with infinite loop
 	   {
@@ -172,13 +179,16 @@ int main(void)
 		   { // CardID is valid
 
 		      /// Check if this is my card
+			   char here=1;
+			   //statusRFID = TM_MFRC522_Auth(0x60, (16*4)+3, uint8_t* Sectorkey, uint8_t* serNum) {
+			   //TM_MFRC522_Read(3, dataReceived);
 
 			   if (TM_MFRC522_Compare(CardID,MyID)==MI_OK)
 			   {
 				   /// Detected my card.
 
 
-
+				   here=2;
 			   }
 			   else
 			   {
@@ -207,7 +217,8 @@ int main(void)
    /* USER CODE BEGIN 2 */
      /*Initialize, Set LCD Display config  and show status message*/
 
-     LCD_Init();
+
+LCD_Init();
      /*Read Context parameters from FLASH*/
      //MIC_Flash_Memory_Read((const uint8_t *) &Context, sizeof(Context));
     // HK_Status = HK_Set_Config(0, &huart1, 2, 100, 500, messageRX);
@@ -253,7 +264,7 @@ int main(void)
      //MIC_UART_Send_Data(&huart1,(uint8_t*)"GET / HTTP/1.1\r\nHost: 192.168.1.164\r\n\r\n",39,100);
     //sendingATCommands(&huart1,100, 500, 100,(uint8_t*)"GET /index.htm HTTP/1.1\r\nHost: 192.168.1.164\r\n\r\n",messageRX);
 
-     if (1) /// Testing getting data. This code part should be included when some RFID card is detected
+     if (0) /// Testing getting data. This code part should be included when some RFID card is detected
      {
 
 
