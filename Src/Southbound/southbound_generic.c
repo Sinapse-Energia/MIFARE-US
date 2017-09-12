@@ -13,13 +13,16 @@
 #include "Definitions.h"
 #include "string.h"
 
+
 extern char *IP_Device;
 extern char *IP_Mask;
 extern char *IP_Gateway;
 extern char *IP_Dns;
 
-extern char *IP_Server_Domain;
-extern char *IP_Server_Port;
+extern char *NTP_Server_Domain;
+extern char *NTP_Server_Port;
+extern char *TCP_Server_Domain;
+extern char *TCP_Server_Port;
 extern char *IP_Local_Port;
 
 extern uint8_t WDT_ENABLED;
@@ -567,7 +570,7 @@ HKStatus HK_Get_Config(HK_Working_Mode mode, UART_HandleTypeDef *phuart1, uint32
 }
 
 
-HKStatus HK_Connect(HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32_t retries,
+HKStatus HK_Connect(HK_Working_Mode mode, HK_Network_Mode netmode, UART_HandleTypeDef *phuart, uint32_t retries,
 		uint32_t timeoutTx, uint32_t timeoutRx, unsigned char *messageRX)
 {
 	uint8_t responseOK = 0;
@@ -587,104 +590,210 @@ HKStatus HK_Connect(HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32_t r
 
 			if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
 
-			//Set Transparency Socket protocol Type
-			while ((retries_counter < retries) & (responseOK == 0))
+			switch (netmode)
 			{
-				strcpy(msgTX,"at+NProType0=2\r\n");
-				sendingATCommands(&huart1, timeoutTx, timeoutRx, 15,(uint8_t*)msgTX ,
-						messageRX);
+				case (TCP):
 
-				if(strstr((const char *)bufferReception, (const char *)"at+RNProType0")) responseOK = 1;
-				else retries_counter++;
+					//Set Transparency Socket protocol Type
+					while ((retries_counter < retries) & (responseOK == 0))
+					{
+						strcpy(msgTX,"at+NProType0=2\r\n");
+						sendingATCommands(&huart1, timeoutTx, timeoutRx, 15,(uint8_t*)msgTX ,
+								messageRX);
+
+						if(strstr((const char *)bufferReception, (const char *)"at+RNProType0")) responseOK = 1;
+						else retries_counter++;
+					}
+
+					if (responseOK == 0)  return HK_UART_FAIL;
+
+					CleanBufferReception();
+					retries_counter = 0;
+					responseOK = 0;
+					if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
+
+					//Set socket remote domain name or IP
+					while ((retries_counter < retries) & (responseOK == 0))
+					{
+						strcpy(msgTX,"at+NDomain0=");
+						strcat(msgTX, TCP_Server_Domain);
+						strcat(msgTX, "\r\n");
+						sendingATCommands(&huart1, timeoutTx, timeoutRx, 34,(uint8_t*) msgTX,
+								messageRX);
+
+						if(strstr((const char *)bufferReception, (const char *)"at+RNDomain0")) responseOK = 1;
+						else retries_counter++;
+					}
+
+					if (responseOK == 0)  return HK_UART_FAIL;
+
+					CleanBufferReception();
+					retries_counter = 0;
+					responseOK = 0;
+					if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
+
+					//Set Socket remote terminal
+					while ((retries_counter < retries) & (responseOK == 0))
+					{
+						strcpy(msgTX,"at+NRPort0=");
+						strcat(msgTX, TCP_Server_Port);
+						strcat(msgTX, "\r\n");
+						sendingATCommands(&huart1, timeoutTx, timeoutRx, 13,(uint8_t*) msgTX,
+								messageRX);
+
+						if(strstr((const char *)bufferReception, (const char *)"at+RNRPort0")) responseOK = 1;
+						else retries_counter++;
+					}
+
+					if (responseOK == 0)  return HK_UART_FAIL;
+
+					CleanBufferReception();
+					retries_counter = 0;
+					responseOK = 0;
+					if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
+
+					//Set Socket local terminal
+					while ((retries_counter < retries) & (responseOK == 0))
+					{
+						strcpy(msgTX,"at+NLPort0=");
+						strcat(msgTX, IP_Local_Port);
+						strcat(msgTX, "\r\n");
+						sendingATCommands(&huart1, timeoutTx, timeoutRx, 17,(uint8_t*) msgTX,
+								messageRX);
+
+						if(strstr((const char *)bufferReception, (const char *)"at+RNLPort0")) responseOK = 1;
+						else retries_counter++;
+					}
+
+					if (responseOK == 0)  return HK_UART_FAIL;
+
+					CleanBufferReception();
+					retries_counter = 0;
+					responseOK = 0;
+					if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
+
+					//Set Socket tcp connection time out
+					while ((retries_counter < retries) & (responseOK == 0))
+					{
+						strcpy(msgTX,"at+NTcpTo0=0\r\n");
+
+						sendingATCommands(&huart1, timeoutTx, timeoutRx, 14,(uint8_t*) msgTX,
+								messageRX);
+
+						if(strstr((const char *)bufferReception, (const char *)"at+RNTcpTo0")) responseOK = 1;
+						else retries_counter++;
+					}
+
+					if (responseOK == 0)  return HK_UART_FAIL;
+
+					CleanBufferReception();
+					retries_counter = 0;
+					responseOK = 0;
+					if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
+
+					break;
+
+				case (UDP):
+
+					//Set Transparency Socket protocol Type
+					while ((retries_counter < retries) & (responseOK == 0))
+					{
+						strcpy(msgTX,"at+NProType0=4\r\n");
+						sendingATCommands(&huart1, timeoutTx, timeoutRx, 15,(uint8_t*)msgTX ,
+								messageRX);
+
+						if(strstr((const char *)bufferReception, (const char *)"at+RNProType0")) responseOK = 1;
+						else retries_counter++;
+					}
+
+					if (responseOK == 0)  return HK_UART_FAIL;
+
+					CleanBufferReception();
+					retries_counter = 0;
+					responseOK = 0;
+					if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
+
+					//Set socket remote domain name or IP
+					while ((retries_counter < retries) & (responseOK == 0))
+					{
+						strcpy(msgTX,"at+NDomain0=");
+						strcat(msgTX, NTP_Server_Domain);
+						strcat(msgTX, "\r\n");
+						sendingATCommands(&huart1, timeoutTx, timeoutRx, 34,(uint8_t*) msgTX,
+								messageRX);
+
+						if(strstr((const char *)bufferReception, (const char *)"at+RNDomain0")) responseOK = 1;
+						else retries_counter++;
+					}
+
+					if (responseOK == 0)  return HK_UART_FAIL;
+
+					CleanBufferReception();
+					retries_counter = 0;
+					responseOK = 0;
+					if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
+
+					//Set Socket remote terminal
+					while ((retries_counter < retries) & (responseOK == 0))
+					{
+						strcpy(msgTX,"at+NRPort0=");
+						strcat(msgTX, NTP_Server_Port);
+						strcat(msgTX, "\r\n");
+						sendingATCommands(&huart1, timeoutTx, timeoutRx, 13,(uint8_t*) msgTX,
+								messageRX);
+
+						if(strstr((const char *)bufferReception, (const char *)"at+RNRPort0")) responseOK = 1;
+						else retries_counter++;
+					}
+
+					if (responseOK == 0)  return HK_UART_FAIL;
+
+					CleanBufferReception();
+					retries_counter = 0;
+					responseOK = 0;
+					if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
+
+					//Set Socket local terminal
+					while ((retries_counter < retries) & (responseOK == 0))
+					{
+						strcpy(msgTX,"at+NLPort0=");
+						strcat(msgTX, IP_Local_Port);
+						strcat(msgTX, "\r\n");
+						sendingATCommands(&huart1, timeoutTx, timeoutRx, 17,(uint8_t*) msgTX,
+								messageRX);
+
+						if(strstr((const char *)bufferReception, (const char *)"at+RNLPort0")) responseOK = 1;
+						else retries_counter++;
+					}
+
+					if (responseOK == 0)  return HK_UART_FAIL;
+
+					CleanBufferReception();
+					retries_counter = 0;
+					responseOK = 0;
+					if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
+
+					//Set Socket UDP connection time out
+					while ((retries_counter < retries) & (responseOK == 0))
+					{
+						strcpy(msgTX,"at+NTcpTo0=0\r\n");
+
+						sendingATCommands(&huart1, timeoutTx, timeoutRx, 14,(uint8_t*) msgTX,
+								messageRX);
+
+						if(strstr((const char *)bufferReception, (const char *)"at+RNTcpTo0")) responseOK = 1;
+						else retries_counter++;
+					}
+
+					if (responseOK == 0)  return HK_UART_FAIL;
+
+					CleanBufferReception();
+					retries_counter = 0;
+					responseOK = 0;
+					if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
+
+					break;
 			}
-
-			if (responseOK == 0)  return HK_UART_FAIL;
-
-			CleanBufferReception();
-			retries_counter = 0;
-			responseOK = 0;
-			if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
-
-			//Set socket remote domain name or IP
-			while ((retries_counter < retries) & (responseOK == 0))
-			{
-				strcpy(msgTX,"at+NDomain0=");
-				strcat(msgTX, IP_Server_Domain);
-				strcat(msgTX, "\r\n");
-				sendingATCommands(&huart1, timeoutTx, timeoutRx, 34,(uint8_t*) msgTX,
-						messageRX);
-
-				if(strstr((const char *)bufferReception, (const char *)"at+RNDomain0")) responseOK = 1;
-				else retries_counter++;
-			}
-
-			if (responseOK == 0)  return HK_UART_FAIL;
-
-			CleanBufferReception();
-			retries_counter = 0;
-			responseOK = 0;
-			if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
-
-			//Set Socket remote terminal
-			while ((retries_counter < retries) & (responseOK == 0))
-			{
-				strcpy(msgTX,"at+NRPort0=");
-				strcat(msgTX, IP_Server_Port);
-				strcat(msgTX, "\r\n");
-				sendingATCommands(&huart1, timeoutTx, timeoutRx, 13,(uint8_t*) msgTX,
-						messageRX);
-
-				if(strstr((const char *)bufferReception, (const char *)"at+RNRPort0")) responseOK = 1;
-				else retries_counter++;
-			}
-
-			if (responseOK == 0)  return HK_UART_FAIL;
-
-			CleanBufferReception();
-			retries_counter = 0;
-			responseOK = 0;
-			if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
-
-			//Set Socket local terminal
-			while ((retries_counter < retries) & (responseOK == 0))
-			{
-				strcpy(msgTX,"at+NLPort0=");
-				strcat(msgTX, IP_Local_Port);
-				strcat(msgTX, "\r\n");
-				sendingATCommands(&huart1, timeoutTx, timeoutRx, 17,(uint8_t*) msgTX,
-						messageRX);
-
-				if(strstr((const char *)bufferReception, (const char *)"at+RNLPort0")) responseOK = 1;
-				else retries_counter++;
-			}
-
-			if (responseOK == 0)  return HK_UART_FAIL;
-
-			CleanBufferReception();
-			retries_counter = 0;
-			responseOK = 0;
-			if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
-
-			//Set Socket tcp connection time out
-			while ((retries_counter < retries) & (responseOK == 0))
-			{
-				strcpy(msgTX,"at+NTcpTo0=0\r\n");
-
-				sendingATCommands(&huart1, timeoutTx, timeoutRx, 14,(uint8_t*) msgTX,
-						messageRX);
-
-				if(strstr((const char *)bufferReception, (const char *)"at+RNTcpTo0")) responseOK = 1;
-				else retries_counter++;
-			}
-
-			if (responseOK == 0)  return HK_UART_FAIL;
-
-			CleanBufferReception();
-			retries_counter = 0;
-			responseOK = 0;
-			if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
-
-			break;
 	}
 
 	/*After sending the configuration command must be saved and then submitted*/
@@ -733,5 +842,19 @@ HKStatus HK_Connect(HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32_t r
 	CleanBufferReception();
 
 	return HK_OK;
+}
+
+void MIC_Get_RTC(RTC_HandleTypeDef *hrtc, RTC_TimeTypeDef *sTime,RTC_DateTypeDef *sDate, uint32_t Format)
+{
+	//Get Time & Date from Internal_RTC
+	HAL_RTC_GetTime(hrtc, sTime, RTC_FORMAT_BIN);
+	HAL_RTC_GetDate(hrtc, sDate, RTC_FORMAT_BIN);
+}
+
+void MIC_Set_RTC (RTC_HandleTypeDef *hrtc, RTC_TimeTypeDef *sTime,RTC_DateTypeDef *sDate, uint32_t Format)
+{
+	//Set Time & Date to Internal_RTC
+	HAL_RTC_SetTime(hrtc, sTime, RTC_FORMAT_BIN);
+	HAL_RTC_SetDate(hrtc, sDate, RTC_FORMAT_BIN);
 }
 
