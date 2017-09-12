@@ -47,6 +47,7 @@
 #include "southbound_generic.h"
 #include "stdio.h"
 #include "Definitions.h"
+#include "string.h"
 
 
 /* USER CODE END Includes */
@@ -61,6 +62,10 @@ TIM_HandleTypeDef htim7;
 
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart5;
+
+RTC_HandleTypeDef hrtc;
+RTC_DateTypeDef structDateRTC;
+RTC_TimeTypeDef structTimeRTC;
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 
@@ -73,6 +78,7 @@ static void MX_I2C1_Init(void);
 static void MX_IWDG_Init(void);
 static void MX_TIM6_Init(void);
 static void MX_TIM7_Init(void);
+static void MX_RTC_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART5_UART_Init(void);
 
@@ -94,26 +100,32 @@ uint16_t BufferReceptionCounter = 0;
 unsigned char messageRX[SIZE_BUFFER_HTTP];
 uint8_t timeout = 0;
 HKStatus HK_Status;
+unsigned char NTPpacket[NTP_PACKET_SIZE];
+char *bufferNTP = NULL;
 /* USER CODE END 0 */
 
-char *IP_Device = "192.168.1.199";
+
+char *IP_Device = "192.168.1.165";
 char *IP_Mask = "255.255.255.0";
 char *IP_Gateway = "192.168.1.1";
 char *IP_Dns = "192.168.1.1";
 
-char *IP_Server_Domain = "0.europe.pool.ntp.org";
-char *IP_Server_Port = "123";
+char *NTP_Server_Domain = "213.251.52.234";
+char *NTP_Server_Port = "123";
+char *TCP_Server_Domain = "192.168.1.164";
+char *TCP_Server_Port = "8000";
 char *IP_Local_Port = "8080";
 
 int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-	//unsigned char cmd1[4] = {0xAB, 0x02,0x01};
 
-	//AddChkCode(cmd1);
+	//Fill NTPpacket buffer with corrects parameters
+	memset(NTPpacket, 0, NTP_PACKET_SIZE);
 
-	/* USER CODE END 1 */
+	NTPpacket[0]= 0b11100011; NTPpacket[1]= 0; NTPpacket[2]= 6; NTPpacket[3]= 0xEC;
+	NTPpacket[12]= 49; NTPpacket[13]= 0x4E; NTPpacket[14]= 49; NTPpacket[15]= 52;
 
   /* MCU Configuration----------------------------------------------------------*/
 
@@ -134,20 +146,16 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_I2C1_Init();
+  MX_RTC_Init();
   if (WDT_ENABLED==1)
   {
-
-
 	  	  MX_IWDG_Init();
 		__HAL_IWDG_START(&hiwdg); //no se inicializar watchdog, se deshabilita para debug
 		  HAL_IWDG_Refresh(&hiwdg);
-
-
   }
   MX_TIM6_Init();
   MX_TIM7_Init();
   MX_USART1_UART_Init();
-  //MX_USART5_UART_Init();
 
   /// test NFC
 
@@ -205,9 +213,10 @@ int main(void)
 
 
    /* USER CODE BEGIN 2 */
-     /*Initialize, Set LCD Display config  and show status message*/
 
+     /*Initialize, Set LCD Display config  and show status message*/
      LCD_Init();
+
      /*Read Context parameters from FLASH*/
      //MIC_Flash_Memory_Read((const uint8_t *) &Context, sizeof(Context));
     // HK_Status = HK_Set_Config(0, &huart1, 2, 100, 500, messageRX);
@@ -215,7 +224,8 @@ int main(void)
     // HK_Status = HK_Connect(0, &huart1, 2, 100, 500, messageRX);
      //HAL_Delay(2000);
      //HK_Status = HK_Get_Config(0, &huart1, 2, 100, 500, messageRX);
-     //if(HK_Status == 0) LCD_Write_mifare_info(4);
+     //if(HK_Status == 0)
+    // LCD_Write_mifare_info(4);
      /*NTP Synchronization: Read time from server and set into uC RTC*/
      //TCP_IP_Connect();
      //TCP_IP_Get_Data()
@@ -243,7 +253,7 @@ int main(void)
      //HAL_Delay(4000);
 
      //sendingATCommands(&huart1, 100, 500,14, (uint8_t *)"at+SAtMode0=?\r\n", messageRX);
-     LCD_Write_mifare_info(4);
+     //LCD_Write_mifare_info(4);
     // MIC_UART_Send_Data(&huart5,(uint8_t*),12,100);
 
      /*MIC_Set_Digital_Output_status(2,0);
@@ -256,15 +266,17 @@ int main(void)
      if (1) /// Testing getting data. This code part should be included when some RFID card is detected
      {
 
-
-
 		CleanBufferReception();
-		while(1)
+		//while(1)
+		while(BufferReceptionCounter != 96)
 		{
 			HAL_Delay(500);
 			MIC_UART_Get_Data(&huart1, &data, 1);
 
-			MIC_UART_Send_Data(&huart1,(uint8_t*)"GET /index.htm HTTP/1.1\r\nHost: 192.168.1.164\r\n\r\n",48,100);
+			//MIC_UART_Send_Data(&huart1,(uint8_t*)"GET /index.htm HTTP/1.1\r\nHost: 192.168.1.164\r\n\r\n",48,100);
+			//MIC_UART_Send_Data(&huart1,(uint8_t*)"GET /es/use.html HTTP/1.1\r\nHost: pool.ntp.org\r\n\r\n",49,100);
+			//MIC_UART_Send_Data(&huart1,(uint8_t*)&packet,48,100);
+			MIC_UART_Send_Data(&huart1,(uint8_t*)&NTPpacket,48,100);
 			HAL_Delay(500);
 			//while (BufferReceptionCounter < 50)
 			//		;
@@ -272,25 +284,16 @@ int main(void)
 			if (BufferReceptionCounter>0)
 			{
 				HAL_Delay(4000);
+
+				Get_NTP_Time(bufferReception);
 				HAL_Delay(100);
-				CleanBufferReception();
+				//CleanBufferReception();
 
 			}
 			if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
 		}
 	}
 
-
-
-
-
-    //MIC_UART_Send_Data(&huart1,(uint8_t*)&packet,48,100);
-   // HAL_UART_Receive(&huart1, messageRX, 100, 500);
-    /* MIC_UART_Send_Data(&huart1,(uint8_t*)"at+Reboot=1\r\n",13,100);*/
-    // MIC_UART_Send_Data(&huart1,(uint8_t*)"GET / HTTP/1.1\r\nHost: google.es\r\n\r\n",41,100);
-    // MIC_UART_Get_Data(&huart1, messageRX, 500);
-     //MIC_UART_Send_Data(&huart1,(uint8_t*)"Host: google.es",15,100);
-   	  Blink_LED_Status(Reading);
 
       /* USER CODE END 2 */
 
@@ -302,7 +305,9 @@ int main(void)
    	  if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
    	  /*Waiting for UART Interrupt*/
    	  //MIC_UART_Send_Data(&huart1,(uint8_t*)"GET / HTTP/1.1\r\nHost: 192.168.1.164\r\n\r\n",36,100);
-
+   	  //MIC_Get_RTC (&hrtc, &structTimeRTC, &structDateRTC, RTC_FORMAT_BIN);
+   	  //strcpy(bufferNTP, structTimeRTC.Hours);
+   	  LCD_Write_mifare_info(4);
    	  // if (flag_interrupt == 1)
    	  //{
    	  	  /*Reading MIFARE card: block 3, sector 16, key FFFFFFFFFFFF*/
@@ -394,10 +399,16 @@ void SystemClock_Config(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_I2C1;
-  PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK1;
-  PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_SYSCLK;
-  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+  //PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_I2C1;
+  //PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK1;
+  //PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_SYSCLK;
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_RTC;
+    PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSI;
+    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+    {
+      _Error_Handler(__FILE__, __LINE__);
+    }
+ if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
   }
@@ -588,7 +599,7 @@ static void MX_GPIO_Init(void)
     HAL_GPIO_Init(LED_STATUS_GPIO_Port, &GPIO_InitStruct);
 
     /*Configure GPIO pin : GPIOX13_Pin */
-	GPIO_InitStruct.Pin = PORST_Pin;
+	GPIO_InitStruct.Pin = PORST_Pin | PERST_Pin;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
@@ -596,6 +607,75 @@ static void MX_GPIO_Init(void)
 
 }
 
+/* RTC init function */
+void MX_RTC_Init(void)
+{
+
+  RTC_TimeTypeDef sTime;
+  RTC_DateTypeDef sDate;
+  RTC_AlarmTypeDef sAlarm;
+
+    /**Initialize RTC and set the Time and Date
+    */
+  hrtc.Instance = RTC;
+  hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
+  hrtc.Init.AsynchPrediv = RTC_ASYNCH_PREDIV;
+  hrtc.Init.SynchPrediv = RTC_SYNCH_PREDIV;
+  //hrtc.Init.AsynchPrediv = 127;
+ // hrtc.Init.SynchPrediv = 255;
+  hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
+  hrtc.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_HIGH;
+  hrtc.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
+  if(HAL_RTC_Init(&hrtc) != HAL_OK)
+     {
+	  _Error_Handler(__FILE__, __LINE__);
+     }
+
+  //HAL_RTC_Init(&hrtc);
+
+   /*sTime.Hours = 0x11;
+   sTime.Minutes = 0x0;
+   sTime.Seconds = 0x0;*/
+   sTime.TimeFormat = RTC_HOURFORMAT12_AM;
+   sTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
+   sTime.StoreOperation = RTC_STOREOPERATION_RESET;
+   //HAL_RTC_SetTime(&hrtc, &sTime, RTC_FORMAT_BCD);
+   if(HAL_RTC_SetTime(&hrtc,&sTime, RTC_FORMAT_BCD) != HAL_OK)
+   {
+	   _Error_Handler(__FILE__, __LINE__);
+   }
+
+   /*sDate.WeekDay = RTC_WEEKDAY_MONDAY;
+   sDate.Month = RTC_MONTH_JANUARY;
+   sDate.Date = 0x1;
+   sDate.Year = 0x0;*/
+   if(HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN) != HAL_OK)
+      {
+	   _Error_Handler(__FILE__, __LINE__);
+      }
+   //HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN);
+
+     /**Enable the Alarm A
+     */
+   sAlarm.AlarmTime.Hours = 0x0;
+   sAlarm.AlarmTime.Minutes = 0x0;
+   sAlarm.AlarmTime.Seconds = 0x0;
+   sAlarm.AlarmTime.TimeFormat = RTC_HOURFORMAT12_AM;
+   sAlarm.AlarmTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
+   sAlarm.AlarmTime.StoreOperation = RTC_STOREOPERATION_RESET;
+   sAlarm.AlarmMask = RTC_ALARMMASK_NONE;
+   sAlarm.AlarmSubSecondMask = RTC_ALARMSUBSECONDMASK_ALL;
+   sAlarm.AlarmDateWeekDaySel = RTC_ALARMDATEWEEKDAYSEL_DATE;
+   sAlarm.AlarmDateWeekDay = 0x1;
+   sAlarm.Alarm = RTC_ALARM_A;
+
+   if(HAL_RTC_SetAlarm(&hrtc, &sAlarm, RTC_FORMAT_BIN) != HAL_OK)
+        {
+	   _Error_Handler(__FILE__, __LINE__);
+        }
+   //HAL_RTC_SetAlarm(&hrtc, &sAlarm, RTC_FORMAT_BIN);
+
+}
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
@@ -609,7 +689,11 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
 	 bufferReception[BufferReceptionCounter]=data;
 	 BufferReceptionCounter=((BufferReceptionCounter+1)%SIZE_BUFFER_HTTP);
-	 HAL_UART_Receive_IT(huart,&data,1);
+	HAL_UART_Receive_IT(huart,&data,1);
+
+	 //packet[BufferReceptionCounter]=data;
+	// 	 BufferReceptionCounter=((BufferReceptionCounter+1)%48);
+	 //	 HAL_UART_Receive_IT(huart,&data,1);
   }
 
 }
@@ -653,18 +737,6 @@ void _Error_Handler(char * file, int line)
   /* USER CODE END Error_Handler_Debug */ 
 }
 
-//XOR function calculator
-void AddChkCode(unsigned char *Cmd)
-{
-	unsigned char xorRes = Cmd[1];
-	uint8_t i = 0;
-
-	for ( i = 0; i < Cmd[1] - 1; i++)
-	{
-		xorRes = xorRes^Cmd[i+2];
-	}
-	Cmd[Cmd[1]+1] = xorRes;
-}
 
 
 #ifdef USE_FULL_ASSERT
