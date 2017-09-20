@@ -26,7 +26,9 @@ extern char *TCP_Server_Port;
 extern char *IP_Local_Port;
 
 extern uint8_t WDT_ENABLED;
-
+extern HKStatus HK_Status;
+extern TCPStatus TCP_Status;
+extern unsigned char NTPpacket[NTP_PACKET_SIZE];
 ///////////////////////////////////////////////////////////////////////////////////////
 /* Internal FLASH memory functions */
 int MIC_Flash_Memory_Write(const uint8_t *data_in, uint32_t size)
@@ -197,6 +199,13 @@ void MIC_Set_Digital_Output_status(GPIO_Pin_Select pin, PIN_Status status)
 
 			if(status == 0) HAL_GPIO_WritePin(ES0_GPIO_Port, ES0_Pin, GPIO_PIN_RESET);
 			if(status == 1) HAL_GPIO_WritePin(ES0_GPIO_Port, ES0_Pin, GPIO_PIN_SET);
+			break;
+
+		case 3:
+
+			if(status == 0) HAL_GPIO_WritePin(ES1_GPIO_Port, ES1_Pin, GPIO_PIN_RESET);
+			if(status == 1) HAL_GPIO_WritePin(ES1_GPIO_Port, ES1_Pin, GPIO_PIN_SET);
+			break;
 	}
 }
 //////////////////////////////////////////////////////////////////////////////
@@ -251,7 +260,7 @@ HKStatus HK_Set_Config (HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32
 			//Network mode settings: 0 default, 1 ETH, 2 WIFI STA, 3 WIFI AP, 4 WIFI AP Client
 			while ((retries_counter < retries) & (responseOK == 0))
 			{
-				strcpy(msgTX ,"at+Netmode=1\r\n");
+				strcpy(msgTX ,"at+Netmode=0\r\n");
 				sendingATCommands(phuart, timeoutTx, timeoutRx, 13, (uint8_t *)msgTX,
 						messageRX);
 
@@ -493,7 +502,7 @@ HKStatus HK_Get_Config(HK_Working_Mode mode, UART_HandleTypeDef *phuart1, uint32
 
 	uint8_t responseOK = 0;
 	uint8_t retries_counter = 0;
-	char *buffer=NULL;
+	unsigned char *buffer=NULL;
 	char msgTX[50];
 		for (int i=0; i<50;i++) msgTX[i]=0;
 
@@ -505,7 +514,7 @@ HKStatus HK_Get_Config(HK_Working_Mode mode, UART_HandleTypeDef *phuart1, uint32
 
 			//Select UART0 to send AT messages
 			MIC_Set_Digital_Output_status(2,0);
-			HAL_Delay(2500);
+			HAL_Delay(1000);
 			MIC_Set_Digital_Output_status(2,1);
 			HAL_Delay(1000);
 
@@ -565,12 +574,13 @@ HKStatus HK_Get_Config(HK_Working_Mode mode, UART_HandleTypeDef *phuart1, uint32
 			if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
 			break;
 	}
+	MIC_Flash_Memory_Write((const uint8_t *) &Context, sizeof(Context));
 
 	return HK_OK;
 }
 
 
-HKStatus HK_Connect(HK_Working_Mode mode, HK_Network_Mode netmode, UART_HandleTypeDef *phuart, uint32_t retries,
+HKStatus HK_Connect(HK_Working_Mode mode, Network_Mode netmode, UART_HandleTypeDef *phuart, uint32_t retries,
 		uint32_t timeoutTx, uint32_t timeoutRx, unsigned char *messageRX)
 {
 	uint8_t responseOK = 0;
@@ -618,7 +628,7 @@ HKStatus HK_Connect(HK_Working_Mode mode, HK_Network_Mode netmode, UART_HandleTy
 						strcpy(msgTX,"at+NDomain0=");
 						strcat(msgTX, TCP_Server_Domain);
 						strcat(msgTX, "\r\n");
-						sendingATCommands(&huart1, timeoutTx, timeoutRx, 34,(uint8_t*) msgTX,
+						sendingATCommands(&huart1, timeoutTx, timeoutRx,29 ,(uint8_t*) msgTX,
 								messageRX);
 
 						if(strstr((const char *)bufferReception, (const char *)"at+RNDomain0")) responseOK = 1;
@@ -719,7 +729,7 @@ HKStatus HK_Connect(HK_Working_Mode mode, HK_Network_Mode netmode, UART_HandleTy
 						strcpy(msgTX,"at+NDomain0=");
 						strcat(msgTX, NTP_Server_Domain);
 						strcat(msgTX, "\r\n");
-						sendingATCommands(&huart1, timeoutTx, timeoutRx, 34,(uint8_t*) msgTX,
+						sendingATCommands(&huart1, timeoutTx, timeoutRx, 29,(uint8_t*) msgTX,
 								messageRX);
 
 						if(strstr((const char *)bufferReception, (const char *)"at+RNDomain0")) responseOK = 1;
@@ -858,3 +868,73 @@ void MIC_Set_RTC (RTC_HandleTypeDef *hrtc, RTC_TimeTypeDef *sTime,RTC_DateTypeDe
 	HAL_RTC_SetDate(hrtc, sDate, RTC_FORMAT_BIN);
 }
 
+/*TCP generic functions*/
+
+TCPStatus TCP_Connect(HK_Working_Mode mode, Network_Mode netmode, UART_HandleTypeDef *phuart, uint32_t retries,
+		uint32_t timeoutTx, uint32_t timeoutRx, unsigned char *messageRX)
+{
+	HK_Status = HK_Connect(mode, netmode,  phuart, retries, timeoutTx, timeoutRx, messageRX);
+
+	if (HK_Status == 0) TCP_Status = TCP_OK;
+	if (HK_Status == -1) TCP_Status = TCP_FAIL;
+
+	return TCP_Status;
+}
+
+TCPStatus TCP_Set_Config(HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32_t retries,
+		uint32_t timeoutTx, uint32_t timeoutRx, unsigned char *messageRX)
+{
+	HK_Status = HK_Set_Config(mode, phuart, retries, timeoutTx, timeoutRx, messageRX);
+
+	if (HK_Status == 0) TCP_Status = TCP_OK;
+	if (HK_Status == -1) TCP_Status = TCP_FAIL;
+
+	return TCP_Status;
+}
+
+TCPStatus TCP_Get_Config(HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32_t retries, uint32_t timeoutTx,
+		uint32_t timeoutRx, unsigned char *messageRX)
+{
+	HK_Status = HK_Get_Config(mode, phuart, retries, timeoutTx, timeoutRx, messageRX);
+
+	if (HK_Status == 0) TCP_Status = TCP_OK;
+	if (HK_Status == -1) TCP_Status = TCP_FAIL;
+
+	return TCP_Status;
+}
+
+uint8_t NTP_Sync(void)
+{
+	//Connect to NTP server
+	while(TCP_Status != 0 )
+		TCP_Status = TCP_Connect(0, 1,  &huart1, 2, 100, 500, messageRX);
+
+	//NTP server connection OK, TCP_Status = 0
+	if (TCP_Status == 0)
+	{
+		CleanBufferReception();
+		//Wait for NTP response, size 48 bytes
+		while(BufferReceptionCounter == 0)
+		{
+			HAL_Delay(500);
+			MIC_UART_Get_Data(&huart1, &data, 1);
+
+			MIC_UART_Send_Data(&huart1,(uint8_t*)&NTPpacket,48,100);
+			HAL_Delay(500);
+
+			if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
+			if (BufferReceptionCounter>0)
+			{
+				HAL_Delay(4000);
+
+				Get_NTP_Time(bufferReception);
+				HAL_Delay(100);
+				//CleanBufferReception();
+
+			}
+			if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
+		}
+
+	}
+	return TCP_Status;
+}

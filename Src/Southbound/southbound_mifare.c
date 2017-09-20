@@ -12,12 +12,17 @@
 #include "string.h"
 #include "time.h"
 #include "Definitions.h"
-
+#include "stdlib.h"
 
 extern RTC_HandleTypeDef hrtc;
 extern RTC_TimeTypeDef structTimeRTC;
 extern RTC_DateTypeDef structDateRTC;
-extern char*bufferNTP;
+//extern char*bufferNTP;
+extern char NTPbuffer[20];
+extern char *GET_frame;
+extern uint8_t NTP_Sync_state;
+extern TCPStatus TCP_Status;
+extern Memory_Context Context;
 
 void LCD_Init(void)
 {
@@ -40,8 +45,7 @@ void LCD_SetCursor(uint8_t x, uint8_t y)
 
 void LCD_Write_mifare_info(Device_Status status)
 {
-	char info_string[40];
-	char ntp_info[20];
+	char info_string[160];
 	switch(status)
 	{
 		case Normal:
@@ -85,15 +89,34 @@ void LCD_Write_mifare_info(Device_Status status)
 			break;
 
 		case Init_OK:
-			strcpy(info_string, "TESTING");
+			strcpy(info_string,"Initializating");
+			LCD_Display_Update();
+			LCD_SetCursor(5,10);
+			LCD_Write_String(info_string);
+			LCD_SetCursor(5,20);
+			strcpy(info_string,"System");
+			//info_string = "IP server";
+			LCD_Write_String(info_string);
+			LCD_SetCursor(5,45);
+			strcpy(info_string,"Please wait...");
+			LCD_Write_String(info_string);
+			break;
+
+		case RTC_display:
+			//strcpy(info_string, NTPbuffer);
+			strcpy(info_string, "NTP OK");
+
+			/*if(structTimeRTC.Hours < 10) strcpy(info_string, "0");
+			strcpy(info_string, itoa(structTimeRTC.Hours, temporal, 10));
+			strcat(info_string, ":");
+			if(structTimeRTC.Minutes < 10) strcat(info_string, "0");
+			strcat(info_string, itoa(structTimeRTC.Minutes, temporal, 10));
+			strcat(info_string, ":");
+			if(structTimeRTC.Seconds < 10) strcat(info_string, "0");
+			strcat(info_string, itoa(structTimeRTC.Seconds, temporal, 10));*/
 			LCD_Display_Update();
 			LCD_SetCursor(10,23);
 			LCD_Write_String(info_string);
-			//LCD_SetCursor(10,33);
-			//strcpy(info_string, Context.IP_server);
-			//info_string = "IP server";
-			//LCD_Write_String(info_string);
-			break;
 	}
 
 }
@@ -193,13 +216,13 @@ uint8_t sendingATCommands(UART_HandleTypeDef *phuart1, uint32_t timeoutTx,
 }
 
 
+
 void Get_NTP_Time(unsigned char *buffer)
 {
 	uint32_t NTP_highReceived = 0;
 	uint32_t NTP_lowReceived = 0;
 	uint32_t NTP_timestampUnix = 0;
 	uint32_t NTP_result = 0;
-
 
 	NTP_highReceived = bufferReception[41] | bufferReception[40] << 8;
 	NTP_lowReceived = bufferReception[43] | bufferReception[42] << 8;
@@ -208,11 +231,7 @@ void Get_NTP_Time(unsigned char *buffer)
 	NTP_result = NTP_timestampUnix - NTP_SEVENTYYEARS;
 	struct tm* NTP_time = gmtime((const time_t *)&NTP_result);
 
-	bufferNTP = ctime(&NTP_result);
-	LCD_Write_mifare_info(4);
-	/*NTP_hours = ((NTP_time % 86400UL) / 3600);
-	NTP_minutes = ((NTP_time % 3600) / 60);
-	NTP_seconds = (NTP_time % 60);*/
+	strftime(NTPbuffer,20,"%d/%m/%Y %X", NTP_time);
 
 	structTimeRTC.Hours = NTP_time->tm_hour;
 	structTimeRTC.Minutes = NTP_time->tm_min;
@@ -226,11 +245,14 @@ void Get_NTP_Time(unsigned char *buffer)
 	structDateRTC.Month = NTP_time->tm_mon +1;
 	structDateRTC.Date = NTP_time->tm_mday;
 
+	//Set internal RTC
 	MIC_Set_RTC (&hrtc, &structTimeRTC, &structDateRTC, RTC_FORMAT_BIN);
 
+	strcpy(Context.Time_server, (const char *)NTPbuffer);
+	//Update context in Flash
+	MIC_Flash_Memory_Write((const uint8_t *) &Context, sizeof(Context)); // We recover all data.
+
 }
-
-
 
 
 void CleanBufferReception(void) {

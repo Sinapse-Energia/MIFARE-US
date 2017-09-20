@@ -16,7 +16,7 @@ extern "C" {
 
 
 typedef enum {
-	Reading = 0, Registered = 1, Not_Registered =2, Normal = 3, Init_OK = 4
+	Reading = 0, Registered = 1, Not_Registered =2, Normal = 3, Init_OK = 4, RTC_display = 5
 }Device_Status;
 
 
@@ -26,7 +26,7 @@ typedef struct{
 	char IP[15];
 	char ClientType[5];
 	uint32_t Local_Time;
-	unsigned char Time_server;
+	char Time_server[20];
 	char Building[20];
 	uint8_t Classroom_Type;
 	uint8_t Classroom;
@@ -74,7 +74,7 @@ void LCD_Write_String(char *string);
 
 
 typedef enum {
-	short_beep_1 = 0, short_beep_2 = 1, long_beep = 3
+	short_beep_1 = 1, short_beep_2 = 2, long_beep = 3
 }Buzzer_tone;
 
 void Buzzer_Control(Buzzer_tone tone);

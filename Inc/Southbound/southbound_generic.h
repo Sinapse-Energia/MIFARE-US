@@ -63,7 +63,7 @@ typedef enum {
 
 typedef enum {
 	TCP = 0, UDP = 1
-}HK_Network_Mode;
+}Network_Mode;
 
 typedef enum {
 	HK_OK = 0, HK_UART_FAIL = -1
@@ -72,7 +72,7 @@ typedef enum {
 HKStatus HK_Set_Config (HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32_t retries,
 		uint32_t timeoutTx, uint32_t timeoutRx, unsigned char *messageRX);
 
-HKStatus HK_Connect(HK_Working_Mode mode, HK_Network_Mode netmode, UART_HandleTypeDef *phuart, uint32_t retries,
+HKStatus HK_Connect(HK_Working_Mode mode, Network_Mode netmode, UART_HandleTypeDef *phuart, uint32_t retries,
 		uint32_t timeoutTx, uint32_t timeoutRx, unsigned char *messageRX);
 
 HKStatus HK_Get_Config(HK_Working_Mode mode, UART_HandleTypeDef *phuart1, uint32_t retries,
@@ -82,6 +82,20 @@ uint8_t sendingATCommands(UART_HandleTypeDef *phuart1, uint32_t timeoutTx,
 		uint32_t timeoutRx, uint32_t numberOfReceivedBytes,
 		unsigned char *messageTX, unsigned char *messageRX);
 
+typedef enum {
+	TCP_OK = 0, TCP_FAIL = 1
+} TCPStatus;
+
+TCPStatus TCP_Connect(HK_Working_Mode mode, Network_Mode netmode, UART_HandleTypeDef *phuart, uint32_t retries,
+		uint32_t timeoutTx, uint32_t timeoutRx, unsigned char *messageRX);
+
+TCPStatus TCP_Set_Config(HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32_t retries,
+		uint32_t timeoutTx, uint32_t timeoutRx, unsigned char *messageRX);
+
+TCPStatus TCP_Get_config(HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32_t retries, uint32_t timeoutTx,
+		uint32_t timeoutRx, unsigned char *messageRX);
+
+uint8_t NTP_Sync(void);
 //***********************************************************************************************************
 // DESCRIPTION: Functions that Set & Get internal RTC time and date. This function receive as parameters
 // the RTC handle and RTC date & time structs.
