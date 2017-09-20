@@ -36,12 +36,10 @@
   ******************************************************************************
   */
 /* Includes ------------------------------------------------------------------*/
-#include <southbound_mifare.h>
+#include "southbound_mifare.h"
+#include "tm_stm32f4_mfrc522.h"
 #include "main.h"
 #include "stm32f0xx_hal.h"
-#include "mfrc522.h"
-
-/* USER CODE BEGIN Includes */
 #include "ssd1306.h"
 #include "fonts.h"
 #include "southbound_generic.h"
@@ -56,7 +54,7 @@
 I2C_HandleTypeDef hi2c1;
 
 IWDG_HandleTypeDef hiwdg;
-
+SPI_HandleTypeDef hspi1;
 TIM_HandleTypeDef htim6;
 TIM_HandleTypeDef htim7;
 
@@ -79,6 +77,7 @@ static void MX_IWDG_Init(void);
 static void MX_TIM6_Init(void);
 static void MX_TIM7_Init(void);
 static void MX_RTC_Init(void);
+static void MX_SPI1_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART5_UART_Init(void);
 
@@ -162,6 +161,10 @@ int main(void)
   MX_TIM6_Init();
   MX_TIM7_Init();
   MX_USART1_UART_Init();
+  MX_SPI1_Init();
+
+  //Initialize SPI control
+  //	spiControl.initialize( &hspi1, MX_SPI1_Init );
 
   TM_MFRC522_Init();
   //MX_USART5_UART_Init();
@@ -169,63 +172,62 @@ int main(void)
 
   /// test NFC
 
-
-   if (0) // only check one register. =x37 register contains 0x92.-> version 2 NFC
+  while (0)
   {
-	  addressRFID= MFRC522_REG_COMM_IRQ;
-	  dataRFID=readRegister(addressRFID);
+	  uint8_t value= TM_MFRC522_ReadRegister(0x37);
+	  int a=0;
+	  a=a+1;
   }
 
-   if (1) // To check with real card.
-   {
-
-	   uint8_t CardID[5];
-	   //uint8_t MyID[5]=  { 0x43, 0xdc, 0x52, 0xb6, 0x7b };// My card on my keys
-	   uint8_t MyID[5]=  { 123, 192, 122, 199, 6 };// It seems that it is 'Domingo' identifier
 
 
+  if (1) // To check with real card.
+    {
 
-	   while (1) /// example with infinite loop
-	   {
-		  /// If any card detected
+ 	   uint8_t CardID[5];
+ 	   //uint8_t MyID[5]=  { 0x43, 0xdc, 0x52, 0xb6, 0x7b };// My card on my keys
+ 	   uint8_t MyID[5]=  { 123, 192, 122, 199};// It seems that it is 'Domingo' identifier
 
-		   if (TM_MFRC522_Check(CardID) == MI_OK)
-		   { // CardID is valid
-
-		      /// Check if this is my card
-			   char here=1;
-			   //statusRFID = TM_MFRC522_Auth(0x60, (16*4)+3, uint8_t* Sectorkey, uint8_t* serNum) {
-			   //TM_MFRC522_Read(3, dataReceived);
-
-			   if (TM_MFRC522_Compare(CardID,MyID)==MI_OK)
-			   {
-				   /// Detected my card.
+ 	   TM_MFRC522_Status_t statusRFID;
 
 
-				   here=2;
-			   }
-			   else
-			   {
-				   // It is not my card.
+ 	   while (1) /// example with infinite loop
+ 	   {
+ 		  /// If any card detected
+ 		   //TM_MFRC522_ClearBitMask(MFRC522_REG_STATUS2,0x08); // comprobar
+ 		   if (TM_MFRC522_Check(CardID) == MI_OK)
+ 		   { // CardID is valid
 
+ 		      /// Check if this is my card
+ 			   char here=1;
+ 			   uint8_t sectorKey[]={0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+ 			   uint8_t ok= TM_MFRC522_SelectTag(CardID);
+ 			   //statusRFID = TM_MFRC522_Auth(0x60, 63, sectorKey, CardID);
+ 			   if (statusRFID==MI_OK)
+ 			   {
 
-			   }
-		   }
+ 				   statusRFID=TM_MFRC522_Read(62, dataReceived);
+ 				   TM_MFRC522_ClearBitMask(MFRC522_REG_STATUS2, 0x08);
 
-		   else
-		   {
-			   // Card not detected.
-
-		   }
-
-
-	   }
+ 			   }
 
 
 
+ 		   }
 
-   }
+ 		   else
+ 		   {
+ 			   // Card not detected.
 
+ 		   }
+
+
+ 	   }
+
+
+
+
+    }
 
 
    /* USER CODE BEGIN 2 */
@@ -527,6 +529,31 @@ static void MX_TIM7_Init(void)
 
 }
 
+/* SPI1 init function */
+static void MX_SPI1_Init(void)
+{
+
+  hspi1.Instance = SPI1;
+  hspi1.Init.Mode = SPI_MODE_MASTER;
+  hspi1.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi1.Init.NSS = SPI_NSS_SOFT;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
+  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi1.Init.CRCPolynomial = 7;
+  hspi1.Init.CRCLength = SPI_CRC_LENGTH_DATASIZE;
+  hspi1.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
+  if (HAL_SPI_Init(&hspi1) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+}
+
 /* USART1 init function */
 static void MX_USART1_UART_Init(void)
 {
@@ -589,21 +616,27 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   //HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
   //HAL_GPIO_WritePin(LED_STATUS_GPIO_Port, LED_STATUS_Pin, GPIO_PIN_SET);
+  /*Configure GPIO pin : CSS_Pin */
+    GPIO_InitStruct.Pin = CSS_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(CSS_GPIO_Port, &GPIO_InitStruct);
 
 
 
   /* configure output pins MIFARE RFID output */
-  GPIO_InitStruct.Pin =  MFRC522_CS_PIN | MFRC522_CLK_PIN | MFRC522_MOSI_PIN ;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+ // GPIO_InitStruct.Pin =  MFRC522_CS_PIN | MFRC522_CLK_PIN | MFRC522_MOSI_PIN ;
+ // GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+ // GPIO_InitStruct.Pull = GPIO_NOPULL;
+ // GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+ // HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin MIFARE RFID input */
-    GPIO_InitStruct.Pin = MFRC522_MISO_PIN;
-    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  //  GPIO_InitStruct.Pin = MFRC522_MISO_PIN;
+  //  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  //  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  //  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin : BUZZER_Pin */
   GPIO_InitStruct.Pin = BUZZER_Pin | ES0_Pin | ES1_Pin ;
@@ -613,11 +646,11 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin : GPIOX13_Pin */
-    GPIO_InitStruct.Pin = LED_STATUS_Pin;
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-    HAL_GPIO_Init(LED_STATUS_GPIO_Port, &GPIO_InitStruct);
+    //GPIO_InitStruct.Pin = LED_STATUS_Pin;
+    //GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    //GPIO_InitStruct.Pull = GPIO_NOPULL;
+    //GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    //HAL_GPIO_Init(LED_STATUS_GPIO_Port, &GPIO_InitStruct);
 
     /*Configure GPIO pin : GPIOX13_Pin */
 	GPIO_InitStruct.Pin = PORST_Pin | PERST_Pin;

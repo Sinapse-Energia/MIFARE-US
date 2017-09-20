@@ -46,6 +46,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/MIFARE-US/Inc/Southbound}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/MIFARE-US/Libraries/LCD_Display}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/MIFARE-US/Libraries/RFID-RC522}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/MIFARE-US/Drivers/STM32F0xx_StdPeriph_Driver/inc}&quot;"/>
 								</option>
 								<option id="com.atollic.truestudio.gcc.symbols.defined.1670122205" name="Defined symbols" superClass="com.atollic.truestudio.gcc.symbols.defined" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="__weak=__attribute__((weak))"/>

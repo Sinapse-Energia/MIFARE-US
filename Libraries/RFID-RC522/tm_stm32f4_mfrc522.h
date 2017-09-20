@@ -52,7 +52,12 @@
  *	#define MFRC522_CS_PIN					GPIO_Pin_2
  */
 #ifndef TM_MFRC522_H
-#define TM_MFRC522_H 100
+#define TM_MFRC522_H
+
+#ifdef __cplusplus
+ extern "C" {
+#endif
+
 /**
  * Library dependencies
  * - STM32F4xx
@@ -68,29 +73,25 @@
 //#include "stm32f0xx_rcc.h"
 //#include "stm32f0xx_gpio.h"
 //#include "tm_stm32f4_spi.h"
-//#include "defines.h"
+#include "defines.h"
 
-/*
+/**
+ * Pinout
  *
- * Following #defines are used by francisjjp to emulate SPI with 4 generic GPIO
- *
+ * Can be overwritten in defines.h file
  */
+/* Default SPI used */
+#ifndef MFRC522_SPI
+#define MFRC522_SPI						SPI1
+#define MFRC522_SPI_PINSPACK			TM_SPI_PinsPack_2
+#endif
 
-
-#define MFRC522_CS_PIN   		GPIO_PIN_13
-#define MFRC522_CLK_PIN  		GPIO_PIN_8
-#define MFRC522_MOSI_PIN 		GPIO_PIN_3
-#define MFRC522_MISO_PIN 		GPIO_PIN_4
-#define MFRC522_CS_PORT		GPIOB
-#define MFRC522_CLK_PORT	GPIOB
-#define MFRC522_MOSI_PORT	GPIOB
-#define MFRC522_MISO_PORT	GPIOB
-
-
-#define MFRC522_SELECT()   HAL_GPIO_WritePin(MFRC522_CS_PORT, MFRC522_CS_PIN,GPIO_PIN_RESET)//digitalWrite(SPICS, LOW)
-#define MFRC522_UNSELECT() HAL_GPIO_WritePin(MFRC522_CS_PORT, MFRC522_CS_PIN,GPIO_PIN_SET)//digitalWrite(SPICS, HIGH)
-
-
+/* Default CS pin used */
+#ifndef MFRC522_CS_PIN
+#define MFRC522_CS_RCC					RCC_AHB1Periph_GPIOG
+#define MFRC522_CS_PORT					GPIOG
+#define MFRC522_CS_PIN					GPIO_Pin_2
+#endif
 
 /**
  * Status enumeration
@@ -103,8 +104,11 @@ typedef enum {
 	MI_ERR
 } TM_MFRC522_Status_t;
 
+/* modified by francisjjp */
+
 //#define MFRC522_CS_LOW					MFRC522_CS_PORT->BSRRH = MFRC522_CS_PIN;
 //#define MFRC522_CS_HIGH					MFRC522_CS_PORT->BSRRL = MFRC522_CS_PIN;
+
 
 /* MFRC522 Commands */
 #define PCD_IDLE						0x00   //NO action; Cancel the current command
@@ -205,6 +209,17 @@ typedef enum {
 #define MFRC522_MAX_LEN					16
 
 /**
+ * Public functions
+ */
+/**
+ * Initialize MFRC522 RFID reader
+ *
+ * Prepare MFRC522 to work with RFIDs
+ *
+ */
+extern void TM_MFRC522_Init(void);
+
+/**
  * Check for RFID card existance
  *
  * Parameters:
@@ -234,8 +249,8 @@ extern TM_MFRC522_Status_t TM_MFRC522_Compare(uint8_t* CardID, uint8_t* CompareI
  * Private functions
  */
 extern void TM_MFRC522_InitPins(void);
-extern void writeRegister(uint8_t addr, uint8_t val);
-extern uint8_t readRegister(uint8_t addr);
+extern void TM_MFRC522_WriteRegister(uint8_t addr, uint8_t val);
+extern uint8_t TM_MFRC522_ReadRegister(uint8_t addr);
 extern void TM_MFRC522_SetBitMask(uint8_t reg, uint8_t mask);
 extern void TM_MFRC522_ClearBitMask(uint8_t reg, uint8_t mask);
 extern void TM_MFRC522_AntennaOn(void);
@@ -250,6 +265,11 @@ extern TM_MFRC522_Status_t TM_MFRC522_Auth(uint8_t authMode, uint8_t BlockAddr, 
 extern TM_MFRC522_Status_t TM_MFRC522_Read(uint8_t blockAddr, uint8_t* recvData);
 extern TM_MFRC522_Status_t TM_MFRC522_Write(uint8_t blockAddr, uint8_t* writeData);
 extern void TM_MFRC522_Halt(void);
+
+#ifdef __cplusplus
+}
+#endif
+
 
 #endif
 

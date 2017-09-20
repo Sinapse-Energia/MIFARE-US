@@ -89,6 +89,50 @@ uint8_t sendingATCommands(UART_HandleTypeDef *phuart1, uint32_t timeoutTx,
 void MIC_Set_RTC (RTC_HandleTypeDef *hrtc, RTC_TimeTypeDef *sTime,RTC_DateTypeDef *sDate, uint32_t Format);
 void MIC_Get_RTC(RTC_HandleTypeDef *hrtc, RTC_TimeTypeDef *sTime,RTC_DateTypeDef *sDate, uint32_t Format);
 
+
+#ifdef FIRST_SPI_IMPLEMENTATION
+/// SPI functions.
+
+typedef void (*onSPIError)(void);
+
+void SPIx_Error(SPI_HandleTypeDef *hspi );
+
+/*
+ * Function pointers for structure
+*/
+typedef uint8_t (*type_spi_write_read)( uint8_t byte );
+typedef void (*type_spi_write)( uint8_t value);
+typedef uint8_t (*type_spi_read)(uint8_t readSize);
+typedef void (*type_spi_initialize)( SPI_HandleTypeDef *hspi, onSPIError funcSPIErrorCallback );
+
+/*
+ *	Actual functions that read/write to the SPI
+*/
+uint8_t _spi_write_read( uint8_t byte );
+void _spi_write( uint8_t value);
+uint8_t _spi_read(uint8_t readSize);
+void _spi_initialize( SPI_HandleTypeDef *hspi, onSPIError funcSPIErrorCallback );
+
+/*
+ * Helper structure to call SPI in object like fashion
+ */
+struct _spiControl {
+	SPI_HandleTypeDef *SPI_Handle;
+	type_spi_initialize initialize;
+	type_spi_write_read writeRead;
+	type_spi_write write;
+	type_spi_read read;
+	onSPIError funcSPIErrorCallback;
+
+}  ;
+
+extern struct _spiControl spiControl;
+#endif
+
+void MIC_SPI_Write( SPI_HandleTypeDef *hspi1,uint8_t value);
+uint8_t MIC_SPI_Read(SPI_HandleTypeDef *hspi1,uint8_t readSize);
+
+
 #ifdef __cplusplus /* If this is a C++ compiler, use C linkage */
 }
 #endif
