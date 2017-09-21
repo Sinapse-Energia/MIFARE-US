@@ -176,11 +176,14 @@ int main(void)
 
   /// test NFC
   LCD_Init();
-
+  uint8_t value = 0;
   while (0)
   {
-	  uint8_t value = 0;
-	   value= TM_MFRC522_ReadRegister(0x37);
+
+	   //value= TM_MFRC522_ReadRegister(0x37);
+	  MFRC522_CS_LOW;
+	  value = SPI_transfer_byte(((0x37 << 1) & 0x7E)|0x80);
+	  MFRC522_CS_HIGH;
 
 	  int a=0;
 	  a=a+1;
