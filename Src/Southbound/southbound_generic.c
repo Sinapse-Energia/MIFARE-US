@@ -953,6 +953,9 @@ void SPIx_Error(SPI_HandleTypeDef *hspi )
 uint32_t SpixTimeout = SPIx_TIMEOUT_MAX; /*<! Value of Timeout when SPI communication fails */
 
 
+
+
+
 void MIC_SPI_Write( SPI_HandleTypeDef *hspi1,uint8_t value){
   HAL_StatusTypeDef status = HAL_OK;
 
@@ -990,3 +993,64 @@ uint8_t MIC_SPI_Read(SPI_HandleTypeDef *hspi1,uint8_t readSize)
 }
 
 
+uint8_t MIC_SPI_TransmitReceive( SPI_HandleTypeDef *hspi1,uint8_t byte )
+{
+
+	uint8_t receivedbyte = 0x00;
+  /* Send a Byte through the SPI peripheral */
+  /* Read byte from the SPI bus */
+  if(HAL_SPI_TransmitReceive( hspi1, (uint8_t*) &byte, (uint8_t*) &receivedbyte, 1, SpixTimeout) != HAL_OK)
+  {
+
+  }
+
+  return receivedbyte;
+}
+
+
+
+/////////////////////
+
+
+
+void spi_readwrite(char value)
+{
+//register unsigned char temp;
+
+char temp = value;
+
+
+for (int bitCount= 0; bitCount< 8; bitCount++)
+ {
+  if(temp& 0x80) HAL_GPIO_WritePin(PORT_spiTX, PIN_spiTX,GPIO_PIN_SET);
+  else HAL_GPIO_WritePin(PORT_spiTX, PIN_spiTX,GPIO_PIN_RESET);
+ //runNops(1);
+ //asm volatile("nop");
+ HAL_GPIO_WritePin(PORT_spiClock, PIN_spiClock,GPIO_PIN_SET);
+ temp <<= 1;
+ //runNops(1);
+ //asm volatile("nop");
+ HAL_GPIO_WritePin(PORT_spiClock, PIN_spiClock,GPIO_PIN_RESET);
+ }
+}
+
+char spi_read(void)
+{
+
+	//register unsigned char temp=0;
+	char temp=0;
+	 for (int bitCount= 0; bitCount<8; bitCount++)
+	 {
+	     temp <<= 1;
+	     HAL_GPIO_WritePin(PORT_spiClock, PIN_spiClock,GPIO_PIN_RESET);
+	   //  asm volatile("nop");
+	     temp = temp | HAL_GPIO_ReadPin(PORT_spiRX, PIN_spiRX);
+	   //  asm volatile("nop");
+	     HAL_GPIO_WritePin(PORT_spiClock, PIN_spiClock,GPIO_PIN_SET);
+	   //  asm volatile("nop");
+	 }
+	 HAL_GPIO_WritePin(PORT_spiClock, PIN_spiClock,GPIO_PIN_RESET);
+	// asm volatile("nop");
+	 return temp;
+
+}

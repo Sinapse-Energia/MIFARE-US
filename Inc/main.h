@@ -58,8 +58,8 @@
 #define SCL_GPIO_Port GPIOB
 #define SDA_Pin GPIO_PIN_7
 #define SDA_GPIO_Port GPIOB
-#define CSS_Pin GPIO_PIN_15
-#define CSS_GPIO_Port GPIOA
+#define CSS_Pin GPIO_PIN_13
+#define CSS_GPIO_Port GPIOB
 
 #define BUZZER_Pin GPIO_PIN_9
 #define BUZZER_GPIO_Port GPIOB

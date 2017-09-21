@@ -264,6 +264,8 @@ extern uint8_t TM_MFRC522_SelectTag(uint8_t* serNum);
 extern TM_MFRC522_Status_t TM_MFRC522_Auth(uint8_t authMode, uint8_t BlockAddr, uint8_t* Sectorkey, uint8_t* serNum);
 extern TM_MFRC522_Status_t TM_MFRC522_Read(uint8_t blockAddr, uint8_t* recvData);
 extern TM_MFRC522_Status_t TM_MFRC522_Write(uint8_t blockAddr, uint8_t* writeData);
+extern void FJ_MFRC522_WriteRegister(uint8_t addr,uint8_t N, uint8_t *val);
+void FJ_MFRC522_ReadRegister(uint8_t addr,uint8_t N, uint8_t *val);
 extern void TM_MFRC522_Halt(void);
 
 #ifdef __cplusplus

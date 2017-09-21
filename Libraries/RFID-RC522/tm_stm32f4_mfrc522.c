@@ -29,10 +29,19 @@ void TM_MFRC522_Init(void) {
 
 	TM_MFRC522_Reset();
 
+	//TM_MFRC522_WriteRegister(MFRC522_REG_T_MODE, 0x80);
+	//TM_MFRC522_WriteRegister(MFRC522_REG_T_PRESCALER, 0xA9);
+	//TM_MFRC522_WriteRegister(MFRC522_REG_T_RELOAD_H, 0x03);
+	//TM_MFRC522_WriteRegister(MFRC522_REG_T_RELOAD_L, 0xE8);
+
 	TM_MFRC522_WriteRegister(MFRC522_REG_T_MODE, 0x8D);
 	TM_MFRC522_WriteRegister(MFRC522_REG_T_PRESCALER, 0x3E);
-	TM_MFRC522_WriteRegister(MFRC522_REG_T_RELOAD_L, 30);           
+	TM_MFRC522_WriteRegister(MFRC522_REG_T_RELOAD_L, 30);
 	TM_MFRC522_WriteRegister(MFRC522_REG_T_RELOAD_H, 0);
+
+
+
+
 
 	/* 48dB gain */
 	TM_MFRC522_WriteRegister(MFRC522_REG_RF_CFG, 0x70);
@@ -81,39 +90,128 @@ void TM_MFRC522_InitPins(void) {
 	//GPIO_InitStruct.GPIO_Pin = MFRC522_CS_PIN;
 	//GPIO_Init(MFRC522_CS_PORT, &GPIO_InitStruct);
 
-	//MFRC522_CS_HIGH;
+	MFRC522_CS_HIGH;
+	//MFRC522_CS_LOW;
 }
+
+void FJ_MFRC522_WriteRegister(uint8_t addr,uint8_t N, uint8_t *val)
+{
+
+	    uint8_t i=0;
+
+
+	    MFRC522_CS_LOW;
+
+
+	    //MIC_SPI_Write( &hspi1,(addr << 1) & 0x7E);
+
+	    spi_readwrite((addr << 1) & 0x7E);
+
+
+	    for (i=0;i<N;i++)
+	    {
+
+	   	//MIC_SPI_Write( &hspi1,val[i]);
+
+	    	spi_readwrite(val[i]);
+
+
+
+
+	   }
+	    //HAL_SPI_Transmit( &hspi1, (uint8_t*) &val[0], N, 1000);
+
+		MFRC522_CS_HIGH;
+
+
+}
+
+
+void FJ_MFRC522_ReadRegister(uint8_t addr,uint8_t N, uint8_t *val)
+{
+
+	    uint8_t i=0;
+uint8_t dummy=0;
+
+	    MFRC522_CS_LOW;
+
+
+	    //MIC_SPI_Write( &hspi1,((addr << 1) & 0x7E)|0x80);
+	    spi_readwrite(((addr << 1) & 0x7E)|0x80);
+	    dummy=spi_read();
+
+	    for (i=0;i<N;i++)
+	    {
+
+	    	//val[i] = MIC_SPI_TransmitReceive( &hspi1,((addr << 1) & 0x7E)|0x80 );
+
+	    	spi_readwrite(((addr << 1) & 0x7E)|0x80);
+	    	val[i]=spi_read();
+
+
+	    }
+
+	    //val[i]=spi_read();
+	    //val[i] = MIC_SPI_TransmitReceive( &hspi1,0 );
+
+		MFRC522_CS_HIGH;
+
+
+}
+
 
 void TM_MFRC522_WriteRegister(uint8_t addr, uint8_t val) {
 	//CS low
+
+	uint8_t dummy=0;
 	MFRC522_CS_LOW;
-
-
 	//Send address
 	//TM_SPI_Send(MFRC522_SPI, (addr << 1) & 0x7E);
-	MIC_SPI_Write( &hspi1,(addr << 1) & 0x7E);
-	MIC_SPI_Write( &hspi1,val);
 
+	//MIC_SPI_Write( &hspi1,(addr << 1) & 0x7E);
+	//MIC_SPI_Write( &hspi1,val);
+	//HAL_Delay(1);
+	//dummy = MIC_SPI_TransmitReceive( &hspi1,(addr << 1) & 0x7E );
+	//dummy = MIC_SPI_TransmitReceive( &hspi1, val );
+	spi_readwrite(((addr << 1) & 0x7E));
+	spi_readwrite(val);
 
+	//HAL_Delay(1);
 
 	//CS high
 	MFRC522_CS_HIGH;
+
 }
 
 uint8_t TM_MFRC522_ReadRegister(uint8_t addr) {
+
 	uint8_t val;
+	uint8_t dummy = 0;
 	//CS low
 	MFRC522_CS_LOW;
-
+	//HAL_Delay(1);
 	//TM_SPI_Send(MFRC522_SPI, ((addr << 1) & 0x7E) | 0x80);
-	MIC_SPI_Write( &hspi1,((addr << 1) & 0x7E)|0x80);
-
+	//MIC_SPI_Write( &hspi1,((addr << 1) & 0x7E)|0x80);
+	//val = MIC_SPI_TransmitReceive( &hspi1,((addr << 1) & 0x7E)|0x80 );
+	//dummy = MIC_SPI_TransmitReceive( &hspi1,((addr << 1) & 0x7E)|0x80 );
+	//val = MIC_SPI_TransmitReceive( &hspi1,1 );
+	//HAL_Delay(1);
 	//val = TM_SPI_Send(MFRC522_SPI, MFRC522_DUMMY);
-	val= MIC_SPI_Read(&hspi1,1);
+	//val= MIC_SPI_Read(&hspi1,1);
 	//CS high
+
+	spi_readwrite(((addr << 1) & 0x7E)|0x80 );
+	val=spi_read();
+
+
 	MFRC522_CS_HIGH;
 
-	return val;	
+
+
+
+
+
+	return val;
 }
 
 void TM_MFRC522_SetBitMask(uint8_t reg, uint8_t mask) {
@@ -161,9 +259,9 @@ TM_MFRC522_Status_t TM_MFRC522_ToCard(uint8_t command, uint8_t* sendData, uint8_
 	TM_MFRC522_Status_t status = MI_ERR;
 	uint8_t irqEn = 0x00;
 	uint8_t waitIRq = 0x00;
-	uint8_t lastBits;
-	uint8_t n;
-	uint16_t i;
+	uint8_t lastBits=0;
+	uint8_t n=0;
+	uint32_t i=0;
 
 	switch (command) {
 		case PCD_AUTHENT: {
@@ -184,12 +282,15 @@ TM_MFRC522_Status_t TM_MFRC522_ToCard(uint8_t command, uint8_t* sendData, uint8_
 	TM_MFRC522_ClearBitMask(MFRC522_REG_COMM_IRQ, 0x80);
 	TM_MFRC522_SetBitMask(MFRC522_REG_FIFO_LEVEL, 0x80);
 
+
+
 	TM_MFRC522_WriteRegister(MFRC522_REG_COMMAND, PCD_IDLE);
 
 	//Writing data to the FIFO
-	for (i = 0; i < sendLen; i++) {   
-		TM_MFRC522_WriteRegister(MFRC522_REG_FIFO_DATA, sendData[i]);    
+	for (i = 0; i < sendLen; i++) {
+		TM_MFRC522_WriteRegister(MFRC522_REG_FIFO_DATA, sendData[i]);
 	}
+	//FJ_MFRC522_WriteRegister(MFRC522_REG_FIFO_DATA,sendLen, sendData);  // Francis
 
 	//Execute the command
 	TM_MFRC522_WriteRegister(MFRC522_REG_COMMAND, command);
@@ -199,17 +300,20 @@ TM_MFRC522_Status_t TM_MFRC522_ToCard(uint8_t command, uint8_t* sendData, uint8_
 
 	//Waiting to receive data to complete
 	i = 2000;	//i according to the clock frequency adjustment, the operator M1 card maximum waiting time 25ms???
+	//i=1000000;
 	do {
 		//CommIrqReg[7..0]
 		//Set1 TxIRq RxIRq IdleIRq HiAlerIRq LoAlertIRq ErrIRq TimerIRq
 		n = TM_MFRC522_ReadRegister(MFRC522_REG_COMM_IRQ);
+
 		i--;
-	} while ((i!=0) && !(n&0x01) && !(n&waitIRq));
+	} while ((i!=0) &&  !(n&waitIRq) && !(n&0x01) );
 
 	TM_MFRC522_ClearBitMask(MFRC522_REG_BIT_FRAMING, 0x80);			//StartSend=0
 
 	if (i != 0)  {
-		if (!(TM_MFRC522_ReadRegister(MFRC522_REG_ERROR) & 0x1B)) {
+		//if (!(TM_MFRC522_ReadRegister(MFRC522_REG_ERROR) & 0x1B)) {
+		if ((TM_MFRC522_ReadRegister(MFRC522_REG_ERROR) & 0x1B)==0x00) {
 			status = MI_OK;
 			if (n & irqEn & 0x01) {   
 				status = MI_NOTAGERR;			
@@ -218,7 +322,8 @@ TM_MFRC522_Status_t TM_MFRC522_ToCard(uint8_t command, uint8_t* sendData, uint8_
 			if (command == PCD_TRANSCEIVE) {
 				n = TM_MFRC522_ReadRegister(MFRC522_REG_FIFO_LEVEL);
 				lastBits = TM_MFRC522_ReadRegister(MFRC522_REG_CONTROL) & 0x07;
-				if (lastBits) {   
+				//if (lastBits) { // francis
+				if (lastBits!=0) { // francis
 					*backLen = (n - 1) * 8 + lastBits;   
 				} else {   
 					*backLen = n * 8;   
@@ -232,9 +337,11 @@ TM_MFRC522_Status_t TM_MFRC522_ToCard(uint8_t command, uint8_t* sendData, uint8_
 				}
 
 				//Reading the received data in FIFO
-				for (i = 0; i < n; i++) {   
-					backData[i] = TM_MFRC522_ReadRegister(MFRC522_REG_FIFO_DATA);    
+				for (i = 0; i < n; i++) {
+					backData[i] = TM_MFRC522_ReadRegister(MFRC522_REG_FIFO_DATA);
 				}
+
+				//FJ_MFRC522_ReadRegister(MFRC522_REG_FIFO_DATA,n, backData); // Francis
 			}
 		} else {   
 			status = MI_ERR;  
@@ -307,6 +414,14 @@ uint8_t TM_MFRC522_SelectTag(uint8_t* serNum) {
 	}
 	TM_MFRC522_CalculateCRC(buffer, 7, &buffer[7]);		//??
 	status = TM_MFRC522_ToCard(PCD_TRANSCEIVE, buffer, 9, buffer, &recvBits);
+if (status==MI_NOTAGERR)
+{
+	 LCD_Write_String("0");
+}
+if (status==MI_OK)
+{
+	 LCD_Write_String("1");
+}
 
 	if ((status == MI_OK) && (recvBits == 0x18)) {   
 		size = buffer[0]; 

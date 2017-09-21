@@ -48,6 +48,8 @@
 
 #include "string.h"
 
+
+
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -119,6 +121,8 @@ char *TCP_Server_Domain = "192.168.1.164";
 char *TCP_Server_Port = "8000";
 char *IP_Local_Port = "8080";
 
+#pragma data_alignment = 4
+
 int main(void)
 
 
@@ -161,7 +165,7 @@ int main(void)
   MX_TIM6_Init();
   MX_TIM7_Init();
   MX_USART1_UART_Init();
-  MX_SPI1_Init();
+  //MX_SPI1_Init();
 
   //Initialize SPI control
   //	spiControl.initialize( &hspi1, MX_SPI1_Init );
@@ -171,10 +175,13 @@ int main(void)
 
 
   /// test NFC
+  LCD_Init();
 
   while (0)
   {
-	  uint8_t value= TM_MFRC522_ReadRegister(0x37);
+	  uint8_t value = 0;
+	   value= TM_MFRC522_ReadRegister(0x37);
+
 	  int a=0;
 	  a=a+1;
   }
@@ -200,16 +207,30 @@ int main(void)
 
  		      /// Check if this is my card
  			   char here=1;
- 			   uint8_t sectorKey[]={0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+ 			   unsigned char sectorKey[]={0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
  			   uint8_t ok= TM_MFRC522_SelectTag(CardID);
- 			   //statusRFID = TM_MFRC522_Auth(0x60, 63, sectorKey, CardID);
- 			   if (statusRFID==MI_OK)
+ 			   uint8_t j=63;
+ 			   //while (j<64)
  			   {
 
- 				   statusRFID=TM_MFRC522_Read(62, dataReceived);
- 				   TM_MFRC522_ClearBitMask(MFRC522_REG_STATUS2, 0x08);
+ 				   statusRFID = TM_MFRC522_Auth(0x60, j, sectorKey, CardID);
+ 				   if (statusRFID==MI_OK)
+ 				   {
+ 					   TM_MFRC522_Read(j, dataReceived);
+ 					  TM_MFRC522_ClearBitMask(MFRC522_REG_STATUS2, 0x08);
+ 				    }
+
 
  			   }
+
+
+ 			   //if (statusRFID==MI_OK)
+ 			   //{
+
+ 				 //  statusRFID=TM_MFRC522_Read(62, dataReceived);
+ 				 //  TM_MFRC522_ClearBitMask(MFRC522_REG_STATUS2, 0x08);
+
+ 			   //}
 
 
 
@@ -538,15 +559,25 @@ static void MX_SPI1_Init(void)
   hspi1.Init.Direction = SPI_DIRECTION_2LINES;
   hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+  //hspi1.Init.CLKPolarity = SPI_POLARITY_HIGH;
   hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_256; //100khz
+  //hspi1.Init.BaudRatePrescaler =SPI_BAUDRATEPRESCALER_32;
+  //hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;  ///1600khz
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
   hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
   hspi1.Init.CRCPolynomial = 7;
   hspi1.Init.CRCLength = SPI_CRC_LENGTH_DATASIZE;
   hspi1.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
+
+
+
+
+
+
+
   if (HAL_SPI_Init(&hspi1) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);
@@ -620,23 +651,23 @@ static void MX_GPIO_Init(void)
     GPIO_InitStruct.Pin = CSS_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH ;
     HAL_GPIO_Init(CSS_GPIO_Port, &GPIO_InitStruct);
 
 
 
   /* configure output pins MIFARE RFID output */
- // GPIO_InitStruct.Pin =  MFRC522_CS_PIN | MFRC522_CLK_PIN | MFRC522_MOSI_PIN ;
- // GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
- // GPIO_InitStruct.Pull = GPIO_NOPULL;
- // GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
- // HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  GPIO_InitStruct.Pin =  GPIO_PIN_3|GPIO_PIN_5 ;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin MIFARE RFID input */
-  //  GPIO_InitStruct.Pin = MFRC522_MISO_PIN;
-  //  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  //  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  //  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+    GPIO_InitStruct.Pin = GPIO_PIN_4;
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin : BUZZER_Pin */
   GPIO_InitStruct.Pin = BUZZER_Pin | ES0_Pin | ES1_Pin ;

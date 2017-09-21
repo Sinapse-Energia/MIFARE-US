@@ -8,6 +8,12 @@
 #ifndef DEFINITIONS_H_
 #define DEFINITIONS_H_
 
+#define PIN_spiClock GPIO_PIN_3					// Francis
+#define PORT_spiClock GPIOB						// Francis
+#define PIN_spiTX    GPIO_PIN_5
+#define PIN_spiRX    GPIO_PIN_4
+#define PORT_spiTX GPIOB
+#define PORT_spiRX GPIOB
 
 
 #define NTP_PACKET_SIZE 48
