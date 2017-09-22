@@ -8,6 +8,8 @@
 #ifndef DEFINITIONS_H_
 #define DEFINITIONS_H_
 
+//#define SOFTWARE_EMULATED
+
 #define PIN_spiClock GPIO_PIN_3					// Francis
 #define PORT_spiClock GPIOB						// Francis
 #define PIN_spiTX    GPIO_PIN_5

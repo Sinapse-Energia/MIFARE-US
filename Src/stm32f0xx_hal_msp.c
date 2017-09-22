@@ -153,12 +153,7 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
 
 
 
-#define PIN_spiClock GPIO_PIN_3					// Francis
-#define PORT_spiClock GPIOB						// Francis
-#define PIN_spiTX    GPIO_PIN_5
-#define PIN_spiRX    GPIO_PIN_4
-#define PORT_spiTX GPIOB
-#define PORT_spiRX GPIOB
+
 
 
   /* USER CODE BEGIN SPI1_MspInit 1 */

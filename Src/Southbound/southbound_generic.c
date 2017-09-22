@@ -1101,7 +1101,7 @@ uint8_t SPI_transfer_byte(uint8_t byte_out)
         write_MOSI((byte_out & bit) ? GPIO_PIN_SET : GPIO_PIN_RESET);
 
         /* Delay for at least the peer's setup time */
-        //HAL_Delay(10);
+
 
         /* Pull the clock line high */
         write_SCLK(GPIO_PIN_SET);
@@ -1111,7 +1111,7 @@ uint8_t SPI_transfer_byte(uint8_t byte_out)
             byte_in |= bit;
 
         /* Delay for at least the peer's hold time */
-        //HAL_Delay(10);
+
 
         /* Pull the clock line low */
         write_SCLK(GPIO_PIN_RESET);
