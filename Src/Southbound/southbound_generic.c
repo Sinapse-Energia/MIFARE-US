@@ -54,6 +54,7 @@ int MIC_Flash_Memory_Write(const uint8_t *data_in, uint32_t size)
 
 	if (status==HAL_OK) return sizeReceived; // if all goes fine, it returns size of data.
 
+	return status;
 }
 
 int MIC_Flash_Memory_Read(const uint8_t *data_out, uint32_t size)
@@ -75,7 +76,7 @@ int MIC_Flash_Memory_Read(const uint8_t *data_out, uint32_t size)
 		//CopyFlashMemorystruct_to_Localstruct();
 		return sizeReceived; // if all goes fine, it returns size of data.
 	}
-
+	return status;
 }
 
 HAL_StatusTypeDef FlashNVM_ErasePage(uint32_t page)
@@ -594,7 +595,7 @@ HKStatus HK_Connect(HK_Working_Mode mode, Network_Mode netmode, UART_HandleTypeD
 
 			//RESET ES0 pin less 6 seconds to select UART0 interface
 			MIC_Set_Digital_Output_status(2,0);
-			HAL_Delay(2500);
+			HAL_Delay(1000);
 			MIC_Set_Digital_Output_status(2,1);
 			HAL_Delay(1000);
 
@@ -628,7 +629,7 @@ HKStatus HK_Connect(HK_Working_Mode mode, Network_Mode netmode, UART_HandleTypeD
 						strcpy(msgTX,"at+NDomain0=");
 						strcat(msgTX, TCP_Server_Domain);
 						strcat(msgTX, "\r\n");
-						sendingATCommands(&huart1, timeoutTx, timeoutRx,29 ,(uint8_t*) msgTX,
+						sendingATCommands(&huart1, timeoutTx, timeoutRx,27 ,(uint8_t*) msgTX,
 								messageRX);
 
 						if(strstr((const char *)bufferReception, (const char *)"at+RNDomain0")) responseOK = 1;
@@ -925,12 +926,9 @@ uint8_t NTP_Sync(void)
 			if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
 			if (BufferReceptionCounter>0)
 			{
-				HAL_Delay(4000);
-
 				Get_NTP_Time(bufferReception);
 				HAL_Delay(100);
 				//CleanBufferReception();
-
 			}
 			if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
 		}

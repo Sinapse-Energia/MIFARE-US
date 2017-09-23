@@ -18,8 +18,8 @@ extern "C" {
 
 
 extern UART_HandleTypeDef huart1;
-extern unsigned char messageRX[SIZE_BUFFER_HTTP];
-extern unsigned char bufferReception[SIZE_BUFFER_HTTP];
+extern unsigned char messageRX[SIZE_BUFFER_RECEPTION];
+extern unsigned char bufferReception[SIZE_BUFFER_RECEPTION];
 extern uint8_t  data;
 extern uint16_t BufferReceptionCounter;
 extern IWDG_HandleTypeDef hiwdg;
@@ -49,7 +49,7 @@ void LCD_Write_String(char *string);
 
 
 typedef enum {
-	LED_Status_Pin = 0, Buzzer_Pin = 1, ES0_UART0 = 2
+	LED_Status_Pin = 0, Buzzer_Pin = 1, ES0_UART0 = 2, ES1_UART0 = 3
 }GPIO_Pin_Select;
 
 void MIC_Set_Digital_Output_status(GPIO_Pin_Select pin, PIN_Status status);
@@ -92,7 +92,7 @@ TCPStatus TCP_Connect(HK_Working_Mode mode, Network_Mode netmode, UART_HandleTyp
 TCPStatus TCP_Set_Config(HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32_t retries,
 		uint32_t timeoutTx, uint32_t timeoutRx, unsigned char *messageRX);
 
-TCPStatus TCP_Get_config(HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32_t retries, uint32_t timeoutTx,
+TCPStatus TCP_Get_Config(HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32_t retries, uint32_t timeoutTx,
 		uint32_t timeoutRx, unsigned char *messageRX);
 
 uint8_t NTP_Sync(void);

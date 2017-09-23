@@ -67,10 +67,10 @@
 #define ES0_GPIO_Port GPIOB
 #define ES1_Pin GPIO_PIN_0
 #define ES1_GPIO_Port GPIOB
-#define PERST_Pin GPIO_PIN_14
-#define PERST_GPIO_Port GPIOC
-#define PORST_Pin GPIO_PIN_13
-#define PORST_GPIO_Port GPIOC
+//#define PERST_Pin GPIO_PIN_14
+//#define PERST_GPIO_Port GPIOC
+//#define PORST_Pin GPIO_PIN_13
+//#define PORST_GPIO_Port GPIOC
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */

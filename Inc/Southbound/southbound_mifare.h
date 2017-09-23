@@ -28,14 +28,67 @@ typedef struct{
 	uint32_t Local_Time;
 	char Time_server[20];
 	char Building[20];
-	uint8_t Classroom_Type;
-	uint8_t Classroom;
-	uint8_t Serie;
+	char Classroom_Type[5];
+	char Classroom[10];
+	char Serie[8];
 
 }Memory_Context;
 
 Memory_Context Context;
 
+typedef struct{
+
+	char tag1[13]; //<horfeus>
+	char tag2[11]; //<firma>
+	char tag3[10]; //<aula>
+	char tag4[11]; //<aulas>
+	char tag5[8]; //<IP>
+	char tag6[15]; //<resultado
+	char tag7[17]; //<dispositivo>
+	char tag8[11]; //<lista>
+	char tag9[12]; //<codigo>
+	char tag10[14]; //<edificio>
+	char tag11[10]; //<tipo>
+	char tag12[12]; //<nombre>
+	char tag13[17]; //<TipoCliente>
+	char tag14[12]; //<tiempo>
+	char tag15[14]; //<TipoAula>
+	char tag16[11]; //<serie>
+
+}Start_TAGS;
+
+
+typedef struct{
+
+	char tag1[16]; //</horfeus>
+	char tag2[14]; //</firma>
+	char tag3[13]; //</aula>
+	char tag4[14]; //</aulas>
+	char tag5[11]; //</IP>
+	char tag6[18]; //</resultado
+	char tag7[20]; //</dispositivo>
+	char tag8[14]; //</lista>
+	char tag9[15]; //</codigo>
+	char tag10[17]; //</edificio>
+	char tag11[13]; //</tipo>
+	char tag12[15]; //</nombre>
+	char tag13[20]; //</TipoCliente>
+	char tag14[15]; //</tiempo>
+	char tag15[17]; //</TipoAula>
+	char tag16[14]; //</serie>
+
+}End_TAGS;
+
+
+typedef enum{
+	GET = 0, POST = 1
+}HTTP_METHOD;
+
+HTTP_METHOD method;
+
+
+void FillTags();
+void encode_GET_msg(char *GET_msg);
 
 typedef struct
 {
@@ -83,9 +136,10 @@ void Blink_LED_Status(Device_Status status);
 
 void CleanBufferReception(void);
 
+void Get_NTP_Time(unsigned char *buffer);
+char *Buil_HTTP_msg(char *Payload, HTTP_METHOD method);
 
-
-
+uint8_t HTTP_request(char *HTTPbuffer);
 
 #ifdef __cplusplus /* If this is a C++ compiler, use C linkage */
 }

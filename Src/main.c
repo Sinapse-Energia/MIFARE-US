@@ -94,39 +94,36 @@ uint8_t i = 0;
 
 uint8_t UartRFID = 0;
 uint8_t addressRFID,dataRFID;
-unsigned char bufferReception[SIZE_BUFFER_HTTP];
+unsigned char bufferReception[SIZE_BUFFER_RECEPTION];
 uint8_t  data = 0;
 uint16_t BufferReceptionCounter = 0;
-unsigned char messageRX[SIZE_BUFFER_HTTP];
+unsigned char messageRX[SIZE_BUFFER_RECEPTION];
 uint8_t timeout = 0;
 HKStatus HK_Status;
-
+TCPStatus TCP_Status = -1;
+uint8_t NTP_Sync_state = -1;
 char dataReceived[8];
-
+unsigned char RFID_KEY[6]= {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+uint8_t statusRFID = 0;
 unsigned char NTPpacket[NTP_PACKET_SIZE];
-char *bufferNTP = NULL;
-
+//char *bufferNTP = NULL;
+char NTPbuffer[NTP_TIME_SIZE];
+char GET_msgstring[GET_MSG_SIZE];
 /* USER CODE END 0 */
-
-
-char *IP_Device = "192.168.1.165";
-char *IP_Mask = "255.255.255.0";
-char *IP_Gateway = "192.168.1.1";
-char *IP_Dns = "192.168.1.1";
-
-char *NTP_Server_Domain = "213.251.52.234";
-char *NTP_Server_Port = "123";
-char *TCP_Server_Domain = "192.168.1.164";
-char *TCP_Server_Port = "8000";
-char *IP_Local_Port = "8080";
+Start_TAGS stags;
+End_TAGS etags;
 
 int main(void)
-
-
 {
-
+	HAL_Init();
   /* USER CODE BEGIN 1 */
+	//Fill HTTP messages tags
+	FillTags();
+	//char *XMLarray = Encode_XML(1, Context);
 
+	//char *HTTP_msg = Buil_HTTP_msg(XMLarray, 0);
+
+	//HTTP_request(HTTP_msg);
 	//Fill NTPpacket buffer with corrects parameters
 	memset(NTPpacket, 0, NTP_PACKET_SIZE);
 
@@ -136,7 +133,7 @@ int main(void)
   /* MCU Configuration----------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+  //HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -166,138 +163,118 @@ int main(void)
   TM_MFRC522_Init();
   //MX_USART5_UART_Init();
 
+  //char *XMLarray = Encode_XML(0, Context); //Testing
+
+  //char *HTTP_msg = Build_HTTP_msg(XMLarray, 0); //Testing
+
+  //char mensaje[330];
+  //strcpy(mensaje, HTTP_msg);
+
+
+  //statusRFID = HTTP_request(HTTP_msg); //Testing
 
   /// test NFC
-
-
    if (0) // only check one register. =x37 register contains 0x92.-> version 2 NFC
   {
-	  addressRFID= MFRC522_REG_COMM_IRQ;
+	  addressRFID= 0x37;
 	  dataRFID=readRegister(addressRFID);
   }
 
-   if (1) // To check with real card.
+   if (0) // To check with real card.
    {
 
-	   uint8_t CardID[5];
+	   uint8_t CardID[4];
 	   //uint8_t MyID[5]=  { 0x43, 0xdc, 0x52, 0xb6, 0x7b };// My card on my keys
-	   uint8_t MyID[5]=  { 123, 192, 122, 199, 6 };// It seems that it is 'Domingo' identifier
-
-
-
+	   //uint8_t MyID=  CardID; // It seems that it is 'Domingo' identifier
+	    //uint8_t MyID[4]=  { 0x80,0x23,0x77,0x44};// It seems that it is 'Paco' identifier
 	   while (1) /// example with infinite loop
 	   {
 		  /// If any card detected
-
 		   if (TM_MFRC522_Check(CardID) == MI_OK)
 		   { // CardID is valid
-
 		      /// Check if this is my card
 			   char here=1;
-			   //statusRFID = TM_MFRC522_Auth(0x60, (16*4)+3, uint8_t* Sectorkey, uint8_t* serNum) {
-			   //TM_MFRC522_Read(3, dataReceived);
+			   statusRFID= TM_MFRC522_SelectTag(CardID);
+			   statusRFID = TM_MFRC522_Auth(0x60,62, RFID_KEY, CardID);
+			   statusRFID=TM_MFRC522_Read(62, dataReceived);
 
-			   if (TM_MFRC522_Compare(CardID,MyID)==MI_OK)
+			   if (TM_MFRC522_Compare(CardID,CardID)==MI_OK)
 			   {
 				   /// Detected my card.
-
-
 				   here=2;
 			   }
 			   else
 			   {
 				   // It is not my card.
-
-
 			   }
 		   }
-
 		   else
 		   {
 			   // Card not detected.
-
 		   }
-
-
 	   }
-
-
-
-
    }
 
 
 
    /* USER CODE BEGIN 2 */
 
+   /*Initialize, Set LCD Display config  and show status message*/
+  LCD_Init();
+  LCD_Write_mifare_info(4);
+
+  HAL_Delay(10000); //Delay 10secs until WIFI device start
+
+  /*NTP Synchronization*/
+  //Device must connect to NTP server to get datetime.
+  while (NTP_Sync_state != 0)
+	  NTP_Sync_state = NTP_Sync();
+  if (NTP_Sync_state == 0) LCD_Write_mifare_info(5); //Debug: NTP OK*/
+
+  //HAL_Delay(10000); //Delay 10secs until WIFI restart
+  CleanBufferReception(); //Clean buffer reception
+
+  //Get device config parameters and Update Flash & Context
+ TCP_Status = TCP_Get_Config (0, &huart1, 2, 100, 500, messageRX);
+
+  //Update FLASH with actual Context parameters
+  MIC_Flash_Memory_Write((const uint8_t *) &Context, sizeof(Context));
+  //MIC_Flash_Memory_Read((const uint8_t *) &Context, sizeof(Context));
+
+  //Now, the device should connect to TCP_Server_Domain
+  TCP_Status = TCP_Connect(0, 0,  &huart1, 2, 100, 500, messageRX);
+  //HAL_Delay(10000);
+  //Build the message to send in GET request
 
 
-
-
-     /*Initialize, Set LCD Display config  and show status message*/
-     LCD_Init();
-
-
-     /*Read Context parameters from FLASH*/
-     //MIC_Flash_Memory_Read((const uint8_t *) &Context, sizeof(Context));
-    // HK_Status = HK_Set_Config(0, &huart1, 2, 100, 500, messageRX);
-   // HAL_Delay(2000);
-    // HK_Status = HK_Connect(0, &huart1, 2, 100, 500, messageRX);
-     //HAL_Delay(2000);
-     //HK_Status = HK_Get_Config(0, &huart1, 2, 100, 500, messageRX);
-     //if(HK_Status == 0)
-    // LCD_Write_mifare_info(4);
-     /*NTP Synchronization: Read time from server and set into uC RTC*/
-     //TCP_IP_Connect();
-     //TCP_IP_Get_Data()
-     //MIC_Set_RTC();
-
-     /*Update Context: Read Flash Memory and update context if necessary */
-     //MIC_Flash_Memory_Read();
-     //MIC_Flash_Memory_Write();
-    // HK_Set_Connection_Settings();
-
-     //LCD_Write_mifare_info();
-    /* HAL_GPIO_WritePin(ES0_GPIO_Port, ES0_Pin, GPIO_PIN_RESET);
-    HAL_Delay(2500);
-    HAL_GPIO_WritePin(ES0_GPIO_Port, ES0_Pin, GPIO_PIN_SET);
-     HAL_Delay(2000);*/
-     MIC_Set_Digital_Output_status(2,0);
-       			HAL_Delay(2500);
-       			MIC_Set_Digital_Output_status(2,1);
-       			HAL_Delay(1000);
-     sendingATCommands(&huart1, 100, 500,14, (uint8_t *)"at+SAtMode0=0\r\n", messageRX);
-    /* sendingATCommands(&huart1, 100, 500,10, (uint8_t *)"at+Save=1\r\n", messageRX);
-     sendingATCommands(&huart1, 100, 500,11, (uint8_t *)"at+Apply=1\r\n", messageRX);
-     sendingATCommands(&huart1, 100, 500,0, (uint8_t *)"at+Reboot=1\r\n", messageRX);*/
-     CleanBufferReception();
-     //HAL_Delay(4000);
-
-     //sendingATCommands(&huart1, 100, 500,14, (uint8_t *)"at+SAtMode0=?\r\n", messageRX);
-     //LCD_Write_mifare_info(4);
-    // MIC_UART_Send_Data(&huart5,(uint8_t*),12,100);
-
-     /*MIC_Set_Digital_Output_status(2,0);
-     			HAL_Delay(2500);
-     			MIC_Set_Digital_Output_status(2,1);
-     			HAL_Delay(1000);*/
-     //MIC_UART_Send_Data(&huart1,(uint8_t*)"GET / HTTP/1.1\r\nHost: 192.168.1.164\r\n\r\n",39,100);
-    //sendingATCommands(&huart1,100, 500, 100,(uint8_t*)"GET /index.htm HTTP/1.1\r\nHost: 192.168.1.164\r\n\r\n",messageRX);
 
      if (0) /// Testing getting data. This code part should be included when some RFID card is detected
      {
-
+    	 MIC_UART_Get_Data(&huart1, &data, 1);
+		MIC_Set_Digital_Output_status(2,0);
+		HAL_Delay(1000);
+		MIC_Set_Digital_Output_status(2,1);
+		HAL_Delay(1000);
+		sendingATCommands(&huart1, 100, 500,14, (uint8_t *)"at+SAtMode0=0\r\n", messageRX);
 		CleanBufferReception();
 		//while(1)
-		while(BufferReceptionCounter != 96)
+		while(BufferReceptionCounter == 0)
 		{
-			HAL_Delay(500);
+			/*HAL_Delay(500);
 			MIC_UART_Get_Data(&huart1, &data, 1);
-
-			//MIC_UART_Send_Data(&huart1,(uint8_t*)"GET /index.htm HTTP/1.1\r\nHost: 192.168.1.164\r\n\r\n",48,100);
+			MIC_Set_Digital_Output_status(2,0);
+			HAL_Delay(1000);
+			MIC_Set_Digital_Output_status(2,1);
+			HAL_Delay(1000);
+			sendingATCommands(&huart1, 100, 500,14, (uint8_t *)"at+SAtMode0=0\r\n", messageRX);*/
+			//MIC_UART_Send_Data(&huart1,(uint8_t*)POST_frame,132,100);
+			MIC_UART_Send_Data(&huart1,(uint8_t*)"GET HTTP/1.1\r\nHost: 192.168.1.160\r\n\r\n",37,100);
 			//MIC_UART_Send_Data(&huart1,(uint8_t*)"GET /es/use.html HTTP/1.1\r\nHost: pool.ntp.org\r\n\r\n",49,100);
 			//MIC_UART_Send_Data(&huart1,(uint8_t*)&packet,48,100);
-			MIC_UART_Send_Data(&huart1,(uint8_t*)&NTPpacket,48,100);
+			//MIC_UART_Send_Data(&huart1,(uint8_t*)&NTPpacket,48,100);
+			//CleanBufferReception();
+			//MIC_UART_Send_Data(&huart1,(uint8_t*)&GET_msgstring,strlen(GET_msgstring),100);
+
 			HAL_Delay(500);
 			//while (BufferReceptionCounter < 50)
 			//		;
@@ -306,8 +283,8 @@ int main(void)
 			{
 				HAL_Delay(4000);
 
-				Get_NTP_Time(bufferReception);
-				HAL_Delay(100);
+				//Get_NTP_Time(bufferReception);
+				//HAL_Delay(100);
 				//CleanBufferReception();
 
 			}
@@ -326,9 +303,10 @@ int main(void)
    	  if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
    	  /*Waiting for UART Interrupt*/
    	  //MIC_UART_Send_Data(&huart1,(uint8_t*)"GET / HTTP/1.1\r\nHost: 192.168.1.164\r\n\r\n",36,100);
-   	  //MIC_Get_RTC (&hrtc, &structTimeRTC, &structDateRTC, RTC_FORMAT_BIN);
+   	  MIC_Get_RTC (&hrtc, &structTimeRTC, &structDateRTC, RTC_FORMAT_BIN);
    	  //strcpy(bufferNTP, structTimeRTC.Hours);
-   	  LCD_Write_mifare_info(4);
+   	  LCD_Write_mifare_info(5);
+   	  HAL_Delay(900);
    	  // if (flag_interrupt == 1)
    	  //{
    	  	  /*Reading MIFARE card: block 3, sector 16, key FFFFFFFFFFFF*/
@@ -587,7 +565,10 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  //HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(ES0_GPIO_Port, ES0_Pin, GPIO_PIN_SET);
+  //HAL_GPIO_WritePin(ES1_GPIO_Port, ES1_Pin, GPIO_PIN_SET);
+
   //HAL_GPIO_WritePin(LED_STATUS_GPIO_Port, LED_STATUS_Pin, GPIO_PIN_SET);
 
 
@@ -608,8 +589,8 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : BUZZER_Pin */
   GPIO_InitStruct.Pin = BUZZER_Pin | ES0_Pin | ES1_Pin ;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /*Configure GPIO pin : GPIOX13_Pin */
@@ -620,11 +601,11 @@ static void MX_GPIO_Init(void)
     HAL_GPIO_Init(LED_STATUS_GPIO_Port, &GPIO_InitStruct);
 
     /*Configure GPIO pin : GPIOX13_Pin */
-	GPIO_InitStruct.Pin = PORST_Pin | PERST_Pin;
+	/*GPIO_InitStruct.Pin = PORST_Pin | PERST_Pin;
 	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);*/
 
 }
 
@@ -709,7 +690,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	  //UartRFID =1;
 
 	 bufferReception[BufferReceptionCounter]=data;
-	 BufferReceptionCounter=((BufferReceptionCounter+1)%SIZE_BUFFER_HTTP);
+	 BufferReceptionCounter=((BufferReceptionCounter+1)%SIZE_BUFFER_RECEPTION);
 	HAL_UART_Receive_IT(huart,&data,1);
 
 	 //packet[BufferReceptionCounter]=data;

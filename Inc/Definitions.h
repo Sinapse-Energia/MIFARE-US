@@ -12,7 +12,25 @@
 
 #define NTP_PACKET_SIZE 48
 #define NTP_SEVENTYYEARS 2208988800UL
-#define SIZE_BUFFER_HTTP  4000
+#define SIZE_BUFFER_RECEPTION  4000
+
+#define GET_MSG_SIZE 250
+#define NTP_TIME_SIZE 20
+#define HTTP_ARRAY_SIZE 400
+#define HTTP_METHOD_GET "GET"
+//#define HTTP_METHOD_GET_SIZE 3
+#define HTTP_METHOD_POST "POST"
+#define HTTP_HEADER_DESTINATION "/registro/index.php/simple?solicitud="
+//#define HTTP_HEADER_DESTINATION_SIZE 37
+#define HTTP_HEADER_PROTOCOL "HTTP/1.1"
+//#define HTTP_HEADER_PROTOCOL_SIZE 8
+#define HTTP_HOST "Host: "
+//#define HTTP_HOST_SIZE 6
+#define CARRIAGE_RETURN "\r"
+#define NEWLINE "\n"
+
+
+
 
 #define RTC_CLOCK_SOURCE_LSI
 //#define RTC_CLOCK_SOURCE_LSE  //Se usa el externo 32768Hz.
