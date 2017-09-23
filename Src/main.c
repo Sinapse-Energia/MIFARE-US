@@ -66,6 +66,18 @@ UART_HandleTypeDef huart5;
 RTC_HandleTypeDef hrtc;
 RTC_DateTypeDef structDateRTC;
 RTC_TimeTypeDef structTimeRTC;
+
+//4 bytes Serial number of card, the 5th byte is crc
+ unsigned char serNum[5];
+//7 bytes Serial number of card, the 8th byte is crc
+ unsigned char serNum7[8];
+//buffer
+//uchar str[MAX_LEN];
+
+ unsigned char defaultKeyA[16] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+ unsigned char madKeyA[16] =     { 0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5 };
+ unsigned char NDEFKeyA[16] =    { 0xD3, 0xF7, 0xD3, 0xF7, 0xD3, 0xF7 };
+
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 
@@ -172,7 +184,15 @@ int main(void)
   //Initialize SPI control
   //	spiControl.initialize( &hspi1, MX_SPI1_Init );
 
-  TM_MFRC522_Init();
+  //TM_MFRC522_Init();
+
+  //original code
+  MFRC522_Init();
+  while (1)
+  {
+  loop();
+  }
+
   //MX_USART5_UART_Init();
 
 
