@@ -1,15 +1,12 @@
 /**
   ******************************************************************************
-  * File Name          : main.h
-  * Description        : This file contains the common defines of the application
+  * @file    stm32f0xx_hal_spi_ex.h
+  * @author  MCD Application Team
+  * @brief   Header file of SPI HAL Extended module.
   ******************************************************************************
-  ** This notice applies to any and all portions of this file
-  * that are not between comment pairs USER CODE BEGIN and
-  * USER CODE END. Other portions of this file, whether 
-  * inserted by the user or by software development tools
-  * are owned by their respective copyright owners.
+  * @attention
   *
-  * COPYRIGHT(c) 2017 STMicroelectronics
+  * <h2><center>&copy; COPYRIGHT(c) 2016 STMicroelectronics</center></h2>
   *
   * Redistribution and use in source and binary forms, with or without modification,
   * are permitted provided that the following conditions are met:
@@ -35,60 +32,60 @@
   *
   ******************************************************************************
   */
+
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __MAIN_H
-#define __MAIN_H
-  /* Includes ------------------------------------------------------------------*/
+#ifndef __STM32F0xx_HAL_SPI_EX_H
+#define __STM32F0xx_HAL_SPI_EX_H
 
-/* USER CODE BEGIN Includes */
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-/* USER CODE END Includes */
+/* Includes ------------------------------------------------------------------*/
+#include "stm32f0xx_hal_def.h"
 
-/* Private define ------------------------------------------------------------*/
+/** @addtogroup STM32F0xx_HAL_Driver
+  * @{
+  */
 
-#define txMicro_Pin GPIO_PIN_9
-#define txMicro_GPIO_Port GPIOA
-#define rxMicro_Pin GPIO_PIN_10
-#define rxMicro_GPIO_Port GPIOA
-#define txRFID_Pin GPIO_PIN_3
-#define txRFID_GPIO_Port GPIOB
-#define rxRFID_Pin GPIO_PIN_4
-#define rxRFID_GPIO_Port GPIOB
-#define SCL_Pin GPIO_PIN_6
-#define SCL_GPIO_Port GPIOB
-#define SDA_Pin GPIO_PIN_7
-#define SDA_GPIO_Port GPIOB
-#define CSS_Pin GPIO_PIN_13
-#define CSS_GPIO_Port GPIOB
+/** @addtogroup SPIEx
+  * @{
+  */
 
-#define BUZZER_Pin GPIO_PIN_9
-#define BUZZER_GPIO_Port GPIOB
-#define LED_STATUS_Pin GPIO_PIN_15
-#define LED_STATUS_GPIO_Port GPIOA
+/* Exported types ------------------------------------------------------------*/
+/* Exported constants --------------------------------------------------------*/
+/* Exported macros -----------------------------------------------------------*/
+/* Exported functions --------------------------------------------------------*/
+/** @addtogroup SPIEx_Exported_Functions
+  * @{
+  */
 
-#define ES0_Pin GPIO_PIN_1
-#define ES0_GPIO_Port GPIOB
-#define ES1_Pin GPIO_PIN_0
-#define ES1_GPIO_Port GPIOB
-//#define PERST_Pin GPIO_PIN_14
-//#define PERST_GPIO_Port GPIOC
-//#define PORST_Pin GPIO_PIN_13
-//#define PORST_GPIO_Port GPIOC
-/* USER CODE BEGIN Private defines */
-
-/* USER CODE END Private defines */
-
-void _Error_Handler(char *, int);
-
-#define Error_Handler() _Error_Handler(__FILE__, __LINE__)
+/* Initialization and de-initialization functions  ****************************/
+/* IO operation functions *****************************************************/
+/** @addtogroup SPIEx_Exported_Functions_Group1
+  * @{
+  */
+HAL_StatusTypeDef HAL_SPIEx_FlushRxFifo(SPI_HandleTypeDef *hspi);
+/**
+  * @}
+  */
 
 /**
   * @}
-  */ 
+  */
 
 /**
   * @}
-*/ 
+  */
 
-#endif /* __MAIN_H */
+/**
+  * @}
+  */
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* __STM32F0xx_HAL_SPI_EX_H */
+
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

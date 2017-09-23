@@ -13,6 +13,7 @@
 #include "Definitions.h"
 #include "string.h"
 
+extern struct _spiControl spiControl;
 
 extern char *IP_Device;
 extern char *IP_Mask;
@@ -869,6 +870,7 @@ void MIC_Set_RTC (RTC_HandleTypeDef *hrtc, RTC_TimeTypeDef *sTime,RTC_DateTypeDe
 	HAL_RTC_SetDate(hrtc, sDate, RTC_FORMAT_BIN);
 }
 
+
 /*TCP generic functions*/
 
 TCPStatus TCP_Connect(HK_Working_Mode mode, Network_Mode netmode, UART_HandleTypeDef *phuart, uint32_t retries,
@@ -935,4 +937,266 @@ uint8_t NTP_Sync(void)
 
 	}
 	return TCP_Status;
+}
+
+
+///// SPI functions.
+#ifdef FIRST_SPI_IMPLEMENTATION
+#define SPIx_TIMEOUT_MAX                      ((uint32_t)0x1000)
+uint32_t SpixTimeout = SPIx_TIMEOUT_MAX; /*<! Value of Timeout when SPI communication fails */
+
+//Actual structure that handles SPI communication
+struct _spiControl spiControl = { 0, _spi_initialize, _spi_write_read ,_spi_write, _spi_read, 0 };
+
+
+ void _spi_initialize( SPI_HandleTypeDef *hspi, onSPIError funcSPIErrorCallback )
+ {
+	 spiControl.SPI_Handle = hspi;
+	 spiControl.funcSPIErrorCallback = funcSPIErrorCallback;
+ }
+
+	/**
+  * @brief  Sends a Byte through the SPI interface and return the Byte received
+  *         from the SPI bus.
+  * @param  Byte : Byte send.
+  * @retval The received byte value
+  */
+uint8_t _spi_write_read( uint8_t byte )
+{
+
+	uint8_t receivedbyte = 0x00;
+  /* Send a Byte through the SPI peripheral */
+  /* Read byte from the SPI bus */
+  if(HAL_SPI_TransmitReceive( spiControl.SPI_Handle, (uint8_t*) &byte, (uint8_t*) &receivedbyte, 1, SpixTimeout) != HAL_OK)
+  {
+    SPIx_Error(spiControl.SPI_Handle);
+  }
+
+  return receivedbyte;
+}
+
+/**
+  * @brief SPI Write a byte to device
+  * @param Value: value to be written
+  * @retval None
+  */
+void _spi_write( uint8_t value){
+  HAL_StatusTypeDef status = HAL_OK;
+
+  status = HAL_SPI_Transmit( spiControl.SPI_Handle, (uint8_t*) &value, 1, SpixTimeout);
+
+  /* Check the communication status */
+  if(status != HAL_OK)
+  {
+    /* Re-Initiaize the BUS */
+    SPIx_Error(spiControl.SPI_Handle);
+  }
+}
+
+
+/**
+  * @brief SPI Read 4 bytes from device
+  * @param  ReadSize Number of bytes to read (max 4 bytes)
+  * @retval Value read on the SPI
+  */
+uint8_t _spi_read(uint8_t readSize){
+
+  HAL_StatusTypeDef status = HAL_OK;
+  uint32_t readvalue;
+
+  status = HAL_SPI_Receive( spiControl.SPI_Handle, (uint8_t*) &readvalue, readSize, SpixTimeout);
+
+  /* Check the communication status */
+  if(status != HAL_OK)
+  {
+    /* Re-Initiaize the BUS */
+    SPIx_Error(spiControl.SPI_Handle);
+  }
+  return readvalue;
+}
+
+void SPIx_Error(SPI_HandleTypeDef *hspi )
+{
+  /* De-initialize the SPI comunication BUS */
+  HAL_SPI_DeInit(hspi);
+
+  /* Re- Initiaize the SPI comunication BUS */
+	if( spiControl.funcSPIErrorCallback!= 0 ){
+		spiControl.funcSPIErrorCallback();
+	}
+  //MX_SPI1_Init( );
+}
+
+#endif
+
+#define SPIx_TIMEOUT_MAX                      ((uint32_t)0x1000)
+uint32_t SpixTimeout = SPIx_TIMEOUT_MAX; /*<! Value of Timeout when SPI communication fails */
+
+
+
+
+
+void MIC_SPI_Write( SPI_HandleTypeDef *hspi1,uint8_t value){
+  HAL_StatusTypeDef status = HAL_OK;
+
+  status = HAL_SPI_Transmit( hspi1, (uint8_t*) &value, 1, SpixTimeout);
+
+  /* Check the communication status */
+  if(status != HAL_OK)
+  {
+    /* Re-Initiaize the BUS */
+
+  }
+}
+
+
+/**
+  * @brief SPI Read 4 bytes from device
+  * @param  ReadSize Number of bytes to read (max 4 bytes)
+  * @retval Value read on the SPI
+  */
+uint8_t MIC_SPI_Read(SPI_HandleTypeDef *hspi1,uint8_t readSize)
+{
+
+  HAL_StatusTypeDef status = HAL_OK;
+  uint32_t readvalue;
+
+  status = HAL_SPI_Receive( hspi1, (uint8_t*) &readvalue, readSize, SpixTimeout);
+
+  /* Check the communication status */
+  if(status != HAL_OK)
+  {
+    /* Re-Initiaize the BUS */
+
+  }
+  return readvalue;
+}
+
+
+uint8_t MIC_SPI_TransmitReceive( SPI_HandleTypeDef *hspi1,uint8_t byte )
+{
+
+	uint8_t receivedbyte = 0x00;
+  /* Send a Byte through the SPI peripheral */
+  /* Read byte from the SPI bus */
+  if(HAL_SPI_TransmitReceive( hspi1, (uint8_t*) &byte, (uint8_t*) &receivedbyte, 1, SpixTimeout) != HAL_OK)
+  {
+
+  }
+
+  return receivedbyte;
+}
+
+
+
+/////////////////////
+
+
+
+void spi_readwrite(char value)
+{
+//register unsigned char temp;
+
+char temp = value;
+
+
+for (int bitCount= 0; bitCount< 8; bitCount++)
+ {
+  if(temp& 0x80) HAL_GPIO_WritePin(PORT_spiTX, PIN_spiTX,GPIO_PIN_SET);
+  else HAL_GPIO_WritePin(PORT_spiTX, PIN_spiTX,GPIO_PIN_RESET);
+ //runNops(1);
+ //asm volatile("nop");
+ HAL_GPIO_WritePin(PORT_spiClock, PIN_spiClock,GPIO_PIN_SET);
+ temp <<= 1;
+ //runNops(1);
+ //asm volatile("nop");
+ HAL_GPIO_WritePin(PORT_spiClock, PIN_spiClock,GPIO_PIN_RESET);
+ }
+}
+
+char spi_read(void)
+{
+
+	//register unsigned char temp=0;
+	char temp=0;
+	 for (int bitCount= 0; bitCount<8; bitCount++)
+	 {
+	     temp <<= 1;
+	     HAL_GPIO_WritePin(PORT_spiClock, PIN_spiClock,GPIO_PIN_RESET);
+	   //  asm volatile("nop");
+	     temp = temp | HAL_GPIO_ReadPin(PORT_spiRX, PIN_spiRX);
+	   //  asm volatile("nop");
+	     HAL_GPIO_WritePin(PORT_spiClock, PIN_spiClock,GPIO_PIN_SET);
+	   //  asm volatile("nop");
+	 }
+	 HAL_GPIO_WritePin(PORT_spiClock, PIN_spiClock,GPIO_PIN_RESET);
+	// asm volatile("nop");
+	 return temp;
+
+}
+
+
+////////////////// New
+
+
+write_MOSI (GPIO_PinState value)
+{
+
+	if (value==GPIO_PIN_RESET) HAL_GPIO_WritePin(PORT_spiTX, PIN_spiTX,GPIO_PIN_RESET);
+	else HAL_GPIO_WritePin(PORT_spiTX, PIN_spiTX,GPIO_PIN_SET);
+
+}
+
+write_SCLK (GPIO_PinState value)
+{
+
+	if (value==GPIO_PIN_RESET) HAL_GPIO_WritePin(PORT_spiClock, PIN_spiClock,GPIO_PIN_RESET);
+	else HAL_GPIO_WritePin(PORT_spiClock, PIN_spiClock,GPIO_PIN_SET);
+
+}
+
+GPIO_PinState read_MISO (void)
+{
+
+	return HAL_GPIO_ReadPin(PORT_spiRX, PIN_spiRX);
+
+}
+
+/*
+ * Simultaneously transmit and receive a byte on the SPI.
+ *
+ * Polarity and phase are assumed to be both 0, i.e.:
+ *   - input data is captured on rising edge of SCLK.
+ *   - output data is propagated on falling edge of SCLK.
+ *
+ * Returns the received byte.
+ */
+uint8_t SPI_transfer_byte(uint8_t byte_out)
+{
+    uint8_t byte_in = 0;
+    uint8_t bit;
+
+    for (bit = 0x80; bit; bit >>= 1) {
+        /* Shift-out a bit to the MOSI line */
+        write_MOSI((byte_out & bit) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+
+        /* Delay for at least the peer's setup time */
+
+
+        /* Pull the clock line high */
+        write_SCLK(GPIO_PIN_SET);
+
+        /* Shift-in a bit from the MISO line */
+        if (read_MISO() == GPIO_PIN_SET)
+            byte_in |= bit;
+
+        /* Delay for at least the peer's hold time */
+
+
+        /* Pull the clock line low */
+        write_SCLK(GPIO_PIN_RESET);
+    }
+
+    return byte_in;
+
 }

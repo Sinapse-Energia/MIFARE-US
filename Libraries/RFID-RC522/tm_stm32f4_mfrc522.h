@@ -52,7 +52,12 @@
  *	#define MFRC522_CS_PIN					GPIO_Pin_2
  */
 #ifndef TM_MFRC522_H
-#define TM_MFRC522_H 100
+#define TM_MFRC522_H
+
+#ifdef __cplusplus
+ extern "C" {
+#endif
+
 /**
  * Library dependencies
  * - STM32F4xx
@@ -68,29 +73,27 @@
 //#include "stm32f0xx_rcc.h"
 //#include "stm32f0xx_gpio.h"
 //#include "tm_stm32f4_spi.h"
-//#include "defines.h"
+#include "defines.h"
 
-/*
+
+
+/**
+ * Pinout
  *
- * Following #defines are used by francisjjp to emulate SPI with 4 generic GPIO
- *
+ * Can be overwritten in defines.h file
  */
+/* Default SPI used */
+#ifndef MFRC522_SPI
+#define MFRC522_SPI						SPI1
+#define MFRC522_SPI_PINSPACK			TM_SPI_PinsPack_2
+#endif
 
-
-#define MFRC522_CS_PIN   		GPIO_PIN_13
-#define MFRC522_CLK_PIN  		GPIO_PIN_8
-#define MFRC522_MOSI_PIN 		GPIO_PIN_3
-#define MFRC522_MISO_PIN 		GPIO_PIN_4
-#define MFRC522_CS_PORT		GPIOB
-#define MFRC522_CLK_PORT	GPIOB
-#define MFRC522_MOSI_PORT	GPIOB
-#define MFRC522_MISO_PORT	GPIOB
-
-
-#define MFRC522_SELECT()   HAL_GPIO_WritePin(MFRC522_CS_PORT, MFRC522_CS_PIN,GPIO_PIN_RESET)//digitalWrite(SPICS, LOW)
-#define MFRC522_UNSELECT() HAL_GPIO_WritePin(MFRC522_CS_PORT, MFRC522_CS_PIN,GPIO_PIN_SET)//digitalWrite(SPICS, HIGH)
-
-
+/* Default CS pin used */
+#ifndef MFRC522_CS_PIN
+#define MFRC522_CS_RCC					RCC_AHB1Periph_GPIOG
+#define MFRC522_CS_PORT					GPIOG
+#define MFRC522_CS_PIN					GPIO_Pin_2
+#endif
 
 /**
  * Status enumeration
@@ -103,8 +106,11 @@ typedef enum {
 	MI_ERR
 } TM_MFRC522_Status_t;
 
+/* modified by francisjjp */
+
 //#define MFRC522_CS_LOW					MFRC522_CS_PORT->BSRRH = MFRC522_CS_PIN;
 //#define MFRC522_CS_HIGH					MFRC522_CS_PORT->BSRRL = MFRC522_CS_PIN;
+
 
 /* MFRC522 Commands */
 #define PCD_IDLE						0x00   //NO action; Cancel the current command
@@ -204,6 +210,125 @@ typedef enum {
 
 #define MFRC522_MAX_LEN					16
 
+
+//////////////// original definition below
+//MF522 command bits
+#define PCD_IDLE              0x00               //NO action; cancel current commands
+#define PCD_AUTHENT           0x0E               //verify password key
+#define PCD_RECEIVE           0x08               //receive data
+#define PCD_TRANSMIT          0x04               //send data
+#define PCD_TRANSCEIVE        0x0C               //send and receive data
+#define PCD_RESETPHASE        0x0F               //reset
+#define PCD_CALCCRC           0x03               //CRC check and caculation
+
+//Mifare_One card command bits
+#define PICC_REQIDL           0x26               //Search the cards that not into sleep mode in the antenna area
+#define PICC_REQALL           0x52               //Search all the cards in the antenna area
+#define PICC_ANTICOLL         0x93               //prevent conflict
+#define PICC_SElECTTAG        0x93               //select card
+#define PICC_ANTICOLL2        0x95		 // anticollision level 2
+#define PICC_ANTICOLL3        0x97               // anticollision level 3
+#define PICC_AUTHENT1A        0x60               //verify A password key
+#define PICC_AUTHENT1B        0x61               //verify B password key
+#define PICC_READ             0x30               //read
+#define PICC_WRITE            0xA0               //write
+#define PICC_DECREMENT        0xC0               //deduct value
+#define PICC_INCREMENT        0xC1               //charge up value
+#define PICC_RESTORE          0xC2               //Restore data into buffer
+#define PICC_TRANSFER         0xB0               //Save data into buffer
+#define PICC_HALT             0x50               //sleep mode
+
+
+//THe mistake code that return when communicate with MF522
+#define MI_OK                 0
+#define MI_NOTAGERR           1
+#define MI_ERR                2
+
+
+//------------------MFRC522 register ---------------
+//Page 0:Command and Status
+#define     Reserved00            0x00
+#define     CommandReg            0x01
+#define     CommIEnReg            0x02
+#define     DivlEnReg             0x03
+#define     CommIrqReg            0x04
+#define     DivIrqReg             0x05
+#define     ErrorReg              0x06
+#define     Status1Reg            0x07
+#define     Status2Reg            0x08
+#define     FIFODataReg           0x09
+#define     FIFOLevelReg          0x0A
+#define     WaterLevelReg         0x0B
+#define     ControlReg            0x0C
+#define     BitFramingReg         0x0D
+#define     CollReg               0x0E
+#define     Reserved01            0x0F
+//Page 1:Command
+#define     Reserved10            0x10
+#define     ModeReg               0x11
+#define     TxModeReg             0x12
+#define     RxModeReg             0x13
+#define     TxControlReg          0x14
+#define     TxAutoReg             0x15
+#define     TxSelReg              0x16
+#define     RxSelReg              0x17
+#define     RxThresholdReg        0x18
+#define     DemodReg              0x19
+#define     Reserved11            0x1A
+#define     Reserved12            0x1B
+#define     MifareReg             0x1C
+#define     Reserved13            0x1D
+#define     Reserved14            0x1E
+#define     SerialSpeedReg        0x1F
+//Page 2:CFG
+#define     Reserved20            0x20
+#define     CRCResultRegM         0x21
+#define     CRCResultRegL         0x22
+#define     Reserved21            0x23
+#define     ModWidthReg           0x24
+#define     Reserved22            0x25
+#define     RFCfgReg              0x26
+#define     GsNReg                0x27
+#define     CWGsPReg	          0x28
+#define     ModGsPReg             0x29
+#define     TModeReg              0x2A
+#define     TPrescalerReg         0x2B
+#define     TReloadRegH           0x2C
+#define     TReloadRegL           0x2D
+#define     TCounterValueRegH     0x2E
+#define     TCounterValueRegL     0x2F
+//Page 3:TestRegister
+#define     Reserved30            0x30
+#define     TestSel1Reg           0x31
+#define     TestSel2Reg           0x32
+#define     TestPinEnReg          0x33
+#define     TestPinValueReg       0x34
+#define     TestBusReg            0x35
+#define     AutoTestReg           0x36
+#define     VersionReg            0x37
+#define     AnalogTestReg         0x38
+#define     TestDAC1Reg           0x39
+#define     TestDAC2Reg           0x3A
+#define     TestADCReg            0x3B
+#define     Reserved31            0x3C
+#define     Reserved32            0x3D
+#define     Reserved33            0x3E
+#define     Reserved34			  0x3F
+//-----------------------------------------------
+
+#ifdef TIM_MAJERLE
+////////////////////////////////////7
+/**
+ * Public functions
+ */
+/**
+ * Initialize MFRC522 RFID reader
+ *
+ * Prepare MFRC522 to work with RFIDs
+ *
+ */
+extern void TM_MFRC522_Init(void);
+
 /**
  * Check for RFID card existance
  *
@@ -234,8 +359,8 @@ extern TM_MFRC522_Status_t TM_MFRC522_Compare(uint8_t* CardID, uint8_t* CompareI
  * Private functions
  */
 extern void TM_MFRC522_InitPins(void);
-extern void writeRegister(uint8_t addr, uint8_t val);
-extern uint8_t readRegister(uint8_t addr);
+extern void TM_MFRC522_WriteRegister(uint8_t addr, uint8_t val);
+extern uint8_t TM_MFRC522_ReadRegister(uint8_t addr);
 extern void TM_MFRC522_SetBitMask(uint8_t reg, uint8_t mask);
 extern void TM_MFRC522_ClearBitMask(uint8_t reg, uint8_t mask);
 extern void TM_MFRC522_AntennaOn(void);
@@ -249,7 +374,21 @@ extern uint8_t TM_MFRC522_SelectTag(uint8_t* serNum);
 extern TM_MFRC522_Status_t TM_MFRC522_Auth(uint8_t authMode, uint8_t BlockAddr, uint8_t* Sectorkey, uint8_t* serNum);
 extern TM_MFRC522_Status_t TM_MFRC522_Read(uint8_t blockAddr, uint8_t* recvData);
 extern TM_MFRC522_Status_t TM_MFRC522_Write(uint8_t blockAddr, uint8_t* writeData);
+extern void FJ_MFRC522_WriteRegister(uint8_t addr,uint8_t N, uint8_t *val);
+void FJ_MFRC522_ReadRegister(uint8_t addr,uint8_t N, uint8_t *val);
 extern void TM_MFRC522_Halt(void);
+
+
+#else
+int MFRC522_ToCard(int command, unsigned char *sendData, unsigned char sendLen, unsigned char *backData, uint *backLen);
+int MFRC522_Auth(unsigned char authMode, unsigned char BlockAddr, unsigned char *Sectorkey, unsigned char *serNum);
+int MFRC522_Read(unsigned char blockAddr, unsigned char *recvData);
+#endif
+
+#ifdef __cplusplus
+}
+#endif
+
 
 #endif
 
