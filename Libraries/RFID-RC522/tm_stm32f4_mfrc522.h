@@ -75,6 +75,8 @@
 //#include "tm_stm32f4_spi.h"
 #include "defines.h"
 
+
+
 /**
  * Pinout
  *
@@ -314,7 +316,7 @@ typedef enum {
 #define     Reserved34			  0x3F
 //-----------------------------------------------
 
-
+#ifdef TIM_MAJERLE
 ////////////////////////////////////7
 /**
  * Public functions
@@ -376,10 +378,12 @@ extern void FJ_MFRC522_WriteRegister(uint8_t addr,uint8_t N, uint8_t *val);
 void FJ_MFRC522_ReadRegister(uint8_t addr,uint8_t N, uint8_t *val);
 extern void TM_MFRC522_Halt(void);
 
+
+#else
 int MFRC522_ToCard(int command, unsigned char *sendData, unsigned char sendLen, unsigned char *backData, uint *backLen);
 int MFRC522_Auth(unsigned char authMode, unsigned char BlockAddr, unsigned char *Sectorkey, unsigned char *serNum);
 int MFRC522_Read(unsigned char blockAddr, unsigned char *recvData);
-
+#endif
 
 #ifdef __cplusplus
 }

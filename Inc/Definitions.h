@@ -8,10 +8,16 @@
 #ifndef DEFINITIONS_H_
 #define DEFINITIONS_H_
 
-//#define SOFTWARE_EMULATED
+#define MAX_LEN 16
 
-#define PIN_spiClock GPIO_PIN_3					// Francis
-#define PORT_spiClock GPIOB						// Francis
+//#define SOFTWARE_EMULATED    /// uncomment this for use same pin for SPI in emulated way
+//#define TIM_MAJERLE		/// Uncomment this for use library from Tim Majerle, but it does not work
+							/// for selecting tag and authentication.
+#define CLOCK_26MHZ_APB113MHZ //Main clock to 26MHz, APB1 13MHZ for driving hardware SPI
+
+
+#define PIN_spiClock GPIO_PIN_3
+#define PORT_spiClock GPIOB
 #define PIN_spiTX    GPIO_PIN_5
 #define PIN_spiRX    GPIO_PIN_4
 #define PORT_spiTX GPIOB

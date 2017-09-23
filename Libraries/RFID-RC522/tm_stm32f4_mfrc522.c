@@ -1,25 +1,8 @@
-/**	
- * |----------------------------------------------------------------------
- * | Copyright (C) Tilen Majerle, 2014
- * | 
- * | This program is free software: you can redistribute it and/or modify
- * | it under the terms of the GNU General Public License as published by
- * | the Free Software Foundation, either version 3 of the License, or
- * | any later version.
- * |  
- * | This program is distributed in the hope that it will be useful,
- * | but WITHOUT ANY WARRANTY; without even the implied warranty of
- * | MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * | GNU General Public License for more details.
- * | 
- * | You should have received a copy of the GNU General Public License
- * | along with this program.  If not, see <http://www.gnu.org/licenses/>.
- * |----------------------------------------------------------------------
- */
+
 #include "tm_stm32f4_mfrc522.h"
 #include "southbound_generic.h"
 
-
+#ifndef TIM_MAJERLE
 //4 bytes Serial number of card, the 5th byte is crc
 extern unsigned char serNum[5];
 //7 bytes Serial number of card, the 8th byte is crc
@@ -30,14 +13,12 @@ extern unsigned char serNum7[8];
 extern unsigned char defaultKeyA[16];
 extern unsigned char madKeyA[16];
 extern unsigned char NDEFKeyA[16];
-
+//#define MAX_LEN 16
+#define byte unsigned char
+#endif
 
 extern SPI_HandleTypeDef hspi1;
-#define byte unsigned char
-#define	uint	unsigned int
 
-//data array maxium length
-#define MAX_LEN 16
 
 void test_spi(void)
 {
@@ -47,24 +28,24 @@ void test_spi(void)
 
 	   //value= TM_MFRC522_ReadRegister(0x37);
 	  MFRC522_CS_LOW;
+#ifdef TIM_MAJERLE
 	  value = TM_MFRC522_ReadRegister(0x37);
-	  MFRC522_CS_HIGH;
+#else
+	  value = MFRC522_ReadRegister(0x37);
+#endif
 
+	  MFRC522_CS_HIGH;
 
   }
 }
 
+#ifdef TIM_MAJERLE
 
 void TM_MFRC522_Init(void) {
 	TM_MFRC522_InitPins();
-	//TM_SPI_Init(MFRC522_SPI, MFRC522_SPI_PINSPACK);
 
 	TM_MFRC522_Reset();
 
-	//TM_MFRC522_WriteRegister(MFRC522_REG_T_MODE, 0x80);
-	//TM_MFRC522_WriteRegister(MFRC522_REG_T_PRESCALER, 0xA9);
-	//TM_MFRC522_WriteRegister(MFRC522_REG_T_RELOAD_H, 0x03);
-	//TM_MFRC522_WriteRegister(MFRC522_REG_T_RELOAD_L, 0xE8);
 
 	TM_MFRC522_WriteRegister(MFRC522_REG_T_MODE, 0x8D);
     TM_MFRC522_WriteRegister(MFRC522_REG_T_PRESCALER, 0x3E);
@@ -515,14 +496,7 @@ uint8_t TM_MFRC522_SelectTag(uint8_t* serNum) {
 	}
 	TM_MFRC522_CalculateCRC(buffer, 7, &buffer[7]);		//??
 	status = TM_MFRC522_ToCard(PCD_TRANSCEIVE, buffer, 9, buffer, &recvBits);
-if (status==MI_NOTAGERR)
-{
-	 LCD_Write_String("0");
-}
-if (status==MI_OK)
-{
-	 LCD_Write_String("1");
-}
+
 
 	if ((status == MI_OK) && (recvBits == 0x18)) {   
 		size = buffer[0]; 
@@ -614,6 +588,10 @@ void TM_MFRC522_Halt(void) {
 
 	TM_MFRC522_ToCard(PCD_TRANSCEIVE, buff, 4, buff, &unLen);
 }
+
+
+#else
+
 ////////////////////////////////////////////////////////////////// Original code copied by TIM below
 /// https://github.com/rena2019/myarduino/blob/master/RC522DumpMifare.ino
 void loop(void)
@@ -1525,3 +1503,4 @@ void dumpHex(char* buffer, int len)
   }
   //Serial.println(" ");
 }
+#endif

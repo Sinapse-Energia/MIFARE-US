@@ -113,7 +113,8 @@ uint16_t BufferReceptionCounter = 0;
 unsigned char messageRX[SIZE_BUFFER_HTTP];
 uint8_t timeout = 0;
 HKStatus HK_Status;
-
+unsigned char bufferRFID[MAX_LEN];
+int statusRFID;
 char dataReceived[8];
 
 unsigned char NTPpacket[NTP_PACKET_SIZE];
@@ -167,104 +168,69 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_I2C1_Init();
-  //MX_RTC_Init();
+  //MX_RTC_Init();         /// ISSUE: I have commented because there is some issue with RTC + Reading MIFARE
   if (WDT_ENABLED==1)
   {
 	  	  MX_IWDG_Init();
 		__HAL_IWDG_START(&hiwdg); //no se inicializar watchdog, se deshabilita para debug
 		  HAL_IWDG_Refresh(&hiwdg);
   }
-  //MX_TIM6_Init();
-  //MX_TIM7_Init();
+  MX_TIM6_Init();
+  MX_TIM7_Init();
   //MX_USART1_UART_Init();
 #ifndef SOFTWARE_EMULATED
   MX_SPI1_Init();
 #endif
 
-  //Initialize SPI control
-  //	spiControl.initialize( &hspi1, MX_SPI1_Init );
-
-  //TM_MFRC522_Init();
-
-  //original code
-  MFRC522_Init();
-  while (1)
-  {
-  loop();
-  }
 
   //MX_USART5_UART_Init();
+#ifdef TIM_MAJERLE
+  TM_MFRC522_Init();
+#else
+  //original code
+  MFRC522_Init();
+#endif
 
 
   /// test NFC
+  //while (1)
+  //{
+  //loop();  /// Testing MIFARE
+  //}
+
+  /*Initialize, Set LCD Display config  and show status message*/
   LCD_Init();
 
 
 
 
-  if (1) // To check with real card.
+  while (1) // To check with real card.
     {
+	  if (selectCard(1)) /// Check+Anticoll+Selecting process
+	  {
 
- 	   uint8_t CardID[5];
- 	  uint8_t otra[5],otra2[5];
- 	   //uint8_t MyID[5]=  { 0x43, 0xdc, 0x52, 0xb6, 0x7b };// My card on my keys
- 	   uint8_t MyID[5]=  { 123, 192, 122, 199,0x06};// It seems that it is 'Domingo' identifier
+	              /// Authentication process
+	              statusRFID = MFRC522_Auth(PICC_AUTHENT1A, 63, defaultKeyA, serNum); //auth with default key
+	              if (statusRFID == MI_OK)
+	              {
+	                   statusRFID = MFRC522_Read(62, bufferRFID);
+	                   if (statusRFID == MI_OK)
+	                   {
+	                	   LCD_Display_Update();
+	                	   LCD_SetCursor(10,23);
+	                	   LCD_Write_String(bufferRFID);
 
- 	   TM_MFRC522_Status_t statusRFID,statusRFID_selectTag,statusRFID_auth, statusRFID_read;
- 	   uint8_t entra=0;
- 	   statusRFID_selectTag=MI_ERR;
- 	   statusRFID_auth=MI_ERR;
- 	   statusRFID_read=MI_ERR;
+	                   }
+	              }
 
-
- 	   while (1) /// example with infinite loop
- 	   {
- 		  /// If any card detected
- 		   //TM_MFRC522_ClearBitMask(MFRC522_REG_STATUS2,0x08); // comprobar
-
-
- 		   if (TM_MFRC522_Check(CardID) == MI_OK)
- 		   { // CardID is valid
-
- 		      /// Check if this is my card
- 			   unsigned char sectorKey[]={0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
-
- 			   uint8_t ok= TM_MFRC522_SelectTag(CardID);
-
-
- 			   statusRFID_auth=TM_MFRC522_Auth(0x60, 63, sectorKey, CardID);;
- 			   if (statusRFID_auth=MI_OK)
- 			   {
- 				  statusRFID_read=TM_MFRC522_Read(62, dataReceived);
-   				 TM_MFRC522_ClearBitMask(MFRC522_REG_STATUS2, 0x08);
-
- 			   }
-
-
-
- 		   }
-
-
-
- 	   }
-
-
-
-
+       }
     }
-
 
    /* USER CODE BEGIN 2 */
 
 
 
-
-
-     /*Initialize, Set LCD Display config  and show status message*/
-     LCD_Init();
-
-
-     /*Read Context parameters from FLASH*/
+      /*Read Context parameters from FLASH*/
      //MIC_Flash_Memory_Read((const uint8_t *) &Context, sizeof(Context));
     // HK_Status = HK_Set_Config(0, &huart1, 2, 100, 500, messageRX);
    // HAL_Delay(2000);
@@ -416,7 +382,7 @@ int main(void)
 /** System Clock Configuration
 */
 //13MHz
-/*
+#ifdef CLOCK_13MHZ
 void SystemClock_Config(void)
 {
 
@@ -465,11 +431,11 @@ void SystemClock_Config(void)
   HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 }
 */
-
+#endif
 /** System Clock Configuration
 */
-/*
-// 48mhz
+
+#ifdef CLOCK_48MHZ
 void SystemClock_Config(void)
 {
 
@@ -519,9 +485,9 @@ void SystemClock_Config(void)
 
   HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 }
-*/
+#endif
 //26MHZ
-/*
+#ifdef CLOCK_26MHZ
 void SystemClock_Config(void)
 {
 
@@ -572,9 +538,9 @@ void SystemClock_Config(void)
 
   HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 }
-*/
+#endif
 
-/*
+#ifdef CLOCK_26MHZ_APB113MHZ
 /// All to 26MHz APB1 to 13MHz
 void SystemClock_Config(void)
 {
@@ -622,8 +588,9 @@ void SystemClock_Config(void)
 
   HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 }
+#endif
 
-*/
+#ifdef CLOCK_32MHZAPB116MHZ
 
 /// all 32Mhz, and APB1 to 16MHz
 void SystemClock_Config(void)
@@ -633,8 +600,7 @@ void SystemClock_Config(void)
   RCC_ClkInitTypeDef RCC_ClkInitStruct;
   RCC_PeriphCLKInitTypeDef PeriphClkInit;
 
-    /**Initializes the CPU, AHB and APB busses clocks
-    */
+
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
   RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
@@ -648,8 +614,7 @@ void SystemClock_Config(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-    /**Initializes the CPU, AHB and APB busses clocks
-    */
+
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
@@ -669,20 +634,19 @@ void SystemClock_Config(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-    /**Configure the Systick interrupt time
-    */
+
   HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
 
-    /**Configure the Systick
-    */
+
   HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
 
-  /* SysTick_IRQn interrupt configuration */
+
   HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 }
+#endif
 
 //39MHz
-/*
+#ifdef CLOCK_29MHZ
 void SystemClock_Config(void)
 {
 
@@ -733,7 +697,7 @@ void SystemClock_Config(void)
 
   HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 }
-*/
+#endif
 
 /* I2C1 init function */
 static void MX_I2C1_Init(void)

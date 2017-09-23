@@ -129,9 +129,13 @@ struct _spiControl {
 extern struct _spiControl spiControl;
 #endif
 
+
+
 void MIC_SPI_Write( SPI_HandleTypeDef *hspi1,uint8_t value);
 uint8_t MIC_SPI_Read(SPI_HandleTypeDef *hspi1,uint8_t readSize);
 uint8_t MIC_SPI_TransmitReceive( SPI_HandleTypeDef *hspi1,uint8_t byte );
+
+
 
 #ifdef __cplusplus /* If this is a C++ compiler, use C linkage */
 }
