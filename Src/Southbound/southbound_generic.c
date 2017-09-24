@@ -917,7 +917,7 @@ uint8_t NTP_Sync(void)
 	{
 		CleanBufferReception();
 		//Wait for NTP response, size 48 bytes
-		while(BufferReceptionCounter == 0)
+		while(BufferReceptionCounter < 48)
 		{
 			HAL_Delay(500);
 			MIC_UART_Get_Data(&huart1, &data, 1);

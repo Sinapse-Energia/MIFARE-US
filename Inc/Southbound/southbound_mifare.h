@@ -16,7 +16,7 @@ extern "C" {
 
 
 typedef enum {
-	Reading = 0, Registered = 1, Not_Registered =2, Normal = 3, Init_OK = 4, RTC_display = 5
+	Reading = 0, Registered = 1, Not_Registered =2, Normal = 3, Initialization = 4, RTC_display = 5
 }Device_Status;
 
 

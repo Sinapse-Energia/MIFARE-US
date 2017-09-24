@@ -116,56 +116,37 @@ HKStatus HK_Status;
 TCPStatus TCP_Status = -1;
 uint8_t NTP_Sync_state = -1;
 unsigned char bufferRFID[MAX_LEN];
-int statusRFID;
+int statusRFID = -1;
+int statusInitialization = 0;
 char dataReceived[8];
 unsigned char RFID_KEY[6]= {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
 unsigned char NTPpacket[NTP_PACKET_SIZE];
 //char *bufferNTP = NULL;
 char NTPbuffer[NTP_TIME_SIZE];
 char GET_msgstring[GET_MSG_SIZE];
-/* USER CODE END 0 */
 
 Start_TAGS stags;
 End_TAGS etags;
-
-
-/* commented because they are in locales.c */
-/*
-char *IP_Device = "192.168.1.165";
-char *IP_Mask = "255.255.255.0";
-char *IP_Gateway = "192.168.1.1";
-char *IP_Dns = "192.168.1.1";
-
-char *NTP_Server_Domain = "213.251.52.234";
-char *NTP_Server_Port = "123";
-char *TCP_Server_Domain = "192.168.1.164";
-char *TCP_Server_Port = "8000";
-char *IP_Local_Port = "8080";
-*/
+/* USER CODE END 0 */
 
 
 
 int main(void)
 {
-	HAL_Init();
+
   /* USER CODE BEGIN 1 */
 	//Fill HTTP messages tags
 	FillTags();
-	//char *XMLarray = Encode_XML(1, Context);
 
-	//char *HTTP_msg = Buil_HTTP_msg(XMLarray, 0);
-
-	//HTTP_request(HTTP_msg);
-	//Fill NTPpacket buffer with corrects parameters
+	//Fill NTP packet message
 	memset(NTPpacket, 0, NTP_PACKET_SIZE);
-
 	NTPpacket[0]= 0b11100011; NTPpacket[1]= 0; NTPpacket[2]= 6; NTPpacket[3]= 0xEC;
 	NTPpacket[12]= 49; NTPpacket[13]= 0x4E; NTPpacket[14]= 49; NTPpacket[15]= 52;
 
   /* MCU Configuration----------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  //HAL_Init();
+  HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -181,7 +162,7 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_I2C1_Init();
-  //MX_RTC_Init();         /// ISSUE: I have commented because there is some issue with RTC + Reading MIFARE
+  MX_RTC_Init();
   if (WDT_ENABLED==1)
   {
 	  	  MX_IWDG_Init();
@@ -190,24 +171,10 @@ int main(void)
   }
   MX_TIM6_Init();
   MX_TIM7_Init();
-  //MX_USART1_UART_Init();
+  MX_USART1_UART_Init();
 #ifndef SOFTWARE_EMULATED
   MX_SPI1_Init();
 #endif
-
-
-  //MX_USART5_UART_Init();
-
-
-  //char *XMLarray = Encode_XML(0, Context); //Testing
-
-  //char *HTTP_msg = Build_HTTP_msg(XMLarray, 0); //Testing
-
-  //char mensaje[330];
-  //strcpy(mensaje, HTTP_msg);
-
-
-  //statusRFID = HTTP_request(HTTP_msg); //Testing
 
 #ifdef TIM_MAJERLE
   TM_MFRC522_Init();
@@ -216,21 +183,12 @@ int main(void)
   MFRC522_Init();
 #endif
 
-
-
-
-
-  //while (1)
-  //{
-  //loop();  /// Testing MIFARE
-  //}
-
   /*Initialize, Set LCD Display config  and show status message*/
   LCD_Init();
+  LCD_Write_mifare_info(4);
 
-   LCD_Write_mifare_info(4);
 
-
+  if(0){
 
   while (1) // To check with real card.
     {
@@ -248,18 +206,16 @@ int main(void)
 	                	   LCD_Display_Update();
 	                	   LCD_SetCursor(10,23);
 	                	   LCD_Write_String(bufferRFID);
-
+	                	   HAL_Delay(1000);
+	                	   LCD_Write_mifare_info(2);
 	                   }
 	              }
 
        }
     }
+  }
 
    /* USER CODE BEGIN 2 */
-
-   /*Initialize, Set LCD Display config  and show status message*/
-  LCD_Init();
-  LCD_Write_mifare_info(4);
 
   HAL_Delay(10000); //Delay 10secs until WIFI device start
 
@@ -267,7 +223,7 @@ int main(void)
   //Device must connect to NTP server to get datetime.
   while (NTP_Sync_state != 0)
 	  NTP_Sync_state = NTP_Sync();
-  if (NTP_Sync_state == 0) LCD_Write_mifare_info(5); //Debug: NTP OK*/
+  //if (NTP_Sync_state == 0) LCD_Write_mifare_info(5); //Debug: NTP OK*/
 
   //HAL_Delay(10000); //Delay 10secs until WIFI restart
   CleanBufferReception(); //Clean buffer reception
@@ -284,52 +240,15 @@ int main(void)
   //HAL_Delay(10000);
   //Build the message to send in GET request
 
+  char *XMLarray = Encode_XML(0, Context); //Testing
 
-      /*Read Context parameters from FLASH*/
-     //MIC_Flash_Memory_Read((const uint8_t *) &Context, sizeof(Context));
-    // HK_Status = HK_Set_Config(0, &huart1, 2, 100, 500, messageRX);
-   // HAL_Delay(2000);
-    // HK_Status = HK_Connect(0, &huart1, 2, 100, 500, messageRX);
-     //HAL_Delay(2000);
-     //HK_Status = HK_Get_Config(0, &huart1, 2, 100, 500, messageRX);
-     //if(HK_Status == 0)
-    // LCD_Write_mifare_info(4);
-     /*NTP Synchronization: Read time from server and set into uC RTC*/
-     //TCP_IP_Connect();
-     //TCP_IP_Get_Data()
-     //MIC_Set_RTC();
+  char *HTTP_msg = Build_HTTP_msg(XMLarray, 0); //Testing
 
-     /*Update Context: Read Flash Memory and update context if necessary */
-     //MIC_Flash_Memory_Read();
-     //MIC_Flash_Memory_Write();
-    // HK_Set_Connection_Settings();
 
-     //LCD_Write_mifare_info();
-    /* HAL_GPIO_WritePin(ES0_GPIO_Port, ES0_Pin, GPIO_PIN_RESET);
-    HAL_Delay(2500);
-    HAL_GPIO_WritePin(ES0_GPIO_Port, ES0_Pin, GPIO_PIN_SET);
-     HAL_Delay(2000);*/
-     MIC_Set_Digital_Output_status(2,0);
-       			HAL_Delay(2500);
-       			MIC_Set_Digital_Output_status(2,1);
-       			HAL_Delay(1000);
-     sendingATCommands(&huart1, 100, 500,14, (uint8_t *)"at+SAtMode0=0\r\n", messageRX);
-    /* sendingATCommands(&huart1, 100, 500,10, (uint8_t *)"at+Save=1\r\n", messageRX);
-     sendingATCommands(&huart1, 100, 500,11, (uint8_t *)"at+Apply=1\r\n", messageRX);
-     sendingATCommands(&huart1, 100, 500,0, (uint8_t *)"at+Reboot=1\r\n", messageRX);*/
-     CleanBufferReception();
-     //HAL_Delay(4000);
+   //statusInitialization = HTTP_request(HTTP_msg); //Testing
+  statusInitialization = 1;
+   if (statusInitialization == 1) LCD_Write_mifare_info(Normal);
 
-     //sendingATCommands(&huart1, 100, 500,14, (uint8_t *)"at+SAtMode0=?\r\n", messageRX);
-     //LCD_Write_mifare_info(4);
-    // MIC_UART_Send_Data(&huart5,(uint8_t*),12,100);
-
-     /*MIC_Set_Digital_Output_status(2,0);
-     			HAL_Delay(2500);
-     			MIC_Set_Digital_Output_status(2,1);
-     			HAL_Delay(1000);*/
-     //MIC_UART_Send_Data(&huart1,(uint8_t*)"GET / HTTP/1.1\r\nHost: 192.168.1.164\r\n\r\n",39,100);
-    //sendingATCommands(&huart1,100, 500, 100,(uint8_t*)"GET /index.htm HTTP/1.1\r\nHost: 192.168.1.164\r\n\r\n",messageRX);
 
 
      if (0) /// Testing getting data. This code part should be included when some RFID card is detected
@@ -384,18 +303,28 @@ int main(void)
      while (1)
     {
      /* USER CODE END WHILE */
-   	  if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
-   	  /*Waiting for UART Interrupt*/
-   	  //MIC_UART_Send_Data(&huart1,(uint8_t*)"GET / HTTP/1.1\r\nHost: 192.168.1.164\r\n\r\n",36,100);
-   	  MIC_Get_RTC (&hrtc, &structTimeRTC, &structDateRTC, RTC_FORMAT_BIN);
-   	  //strcpy(bufferNTP, structTimeRTC.Hours);
-   	  LCD_Write_mifare_info(5);
-   	  HAL_Delay(900);
-   	  // if (flag_interrupt == 1)
-   	  //{
+
    	  	  /*Reading MIFARE card: block 3, sector 16, key FFFFFFFFFFFF*/
    	  	  //RFID_Read_Memory_Block();
+    	 if (selectCard(1)) /// Check+Anticoll+Selecting process
+		  {
+			  /// Authentication process
+			  statusRFID = MFRC522_Auth(PICC_AUTHENT1A, 63, defaultKeyA, serNum); //auth with default key
+			  if (statusRFID == MI_OK)
+			  {
+				   statusRFID = MFRC522_Read(62, bufferRFID);
+				   if (statusRFID == MI_OK)
+				   {
+					   LCD_Write_mifare_info(0);
+					   HAL_Delay(1000);
+					   LCD_Display_Update();
+					   LCD_SetCursor(10,23);
+					   LCD_Write_String(bufferRFID);
+					   strcpy(Context.Serie, bufferRFID);
 
+				   }
+			  }
+			}
    	  	  // if(RFID_OK)
    		  //{
    	  	  	  /*Beep & Update LCD*/
@@ -641,9 +570,12 @@ void SystemClock_Config(void)
     _Error_Handler(__FILE__, __LINE__);
   }
 
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_I2C1;
-  PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK1;
-  PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_SYSCLK;
+  //PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_I2C1;
+  //PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK1;
+  //PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_SYSCLK;
+
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_RTC;
+      PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSI;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
     _Error_Handler(__FILE__, __LINE__);

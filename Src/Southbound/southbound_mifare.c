@@ -96,16 +96,16 @@ void LCD_Write_mifare_info(Device_Status status)
 			LCD_Write_String(info_string);
 			break;
 
-		case Init_OK:
+		case Initialization:
 			strcpy(info_string,"Initializating");
 			LCD_Display_Update();
-			LCD_SetCursor(5,10);
+			LCD_SetCursor(10,10);
 			LCD_Write_String(info_string);
-			LCD_SetCursor(5,20);
+			LCD_SetCursor(10,20);
 			strcpy(info_string,"System");
 			//info_string = "IP server";
 			LCD_Write_String(info_string);
-			LCD_SetCursor(5,45);
+			LCD_SetCursor(10,45);
 			strcpy(info_string,"Please wait...");
 			LCD_Write_String(info_string);
 			break;
@@ -458,6 +458,7 @@ uint8_t HTTP_request(char *HTTPbuffer)
 		{
 			free(mensaje);
 			//HAL_Delay(4000);
+			//INTERPRETAR RESPUESTA DEL SERVIDOR
 		}
 		if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
 	}
