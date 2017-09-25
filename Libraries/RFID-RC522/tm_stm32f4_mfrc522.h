@@ -383,6 +383,7 @@ extern void TM_MFRC522_Halt(void);
 int MFRC522_ToCard(int command, unsigned char *sendData, unsigned char sendLen, unsigned char *backData, uint *backLen);
 int MFRC522_Auth(unsigned char authMode, unsigned char BlockAddr, unsigned char *Sectorkey, unsigned char *serNum);
 int MFRC522_Read(unsigned char blockAddr, unsigned char *recvData);
+int RFID_Read_Memory_Block(int blockTrail, int blockRead, unsigned char *buffer);
 #endif
 
 #ifdef __cplusplus

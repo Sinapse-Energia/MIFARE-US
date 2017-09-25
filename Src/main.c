@@ -188,6 +188,21 @@ int main(void)
   LCD_Write_mifare_info(4);
 
 
+  while (1) /// Another way to take data from RFID using RFID_Read_Memory_Block();
+  {
+
+	  while ((RFID_Read_Memory_Block(63,62, bufferRFID))==MI_ERR);  // wait for detecting card.
+	  LCD_Display_Update();
+	  LCD_SetCursor(10,23);
+	  LCD_Write_String(bufferRFID);
+	  HAL_Delay(1000);
+	  LCD_Write_mifare_info(2);
+
+
+
+  }
+
+
   if(0){
 
   while (1) // To check with real card.

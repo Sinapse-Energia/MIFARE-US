@@ -1515,4 +1515,53 @@ void StopCrypto1(void)
 
 }
 
+
+int RFID_Read_Memory_Block(int blockTrail, int blockRead, unsigned char *buffer)
+{
+	 int status=MI_ERR;
+
+	  if (selectCard(1))
+	    {
+
+             status = MFRC522_Auth(PICC_AUTHENT1A, blockTrail, defaultKeyA, serNum); //auth with default key
+             if (status != MI_OK)
+             {
+                 selectCard(0);
+	             status = MFRC522_Auth(PICC_AUTHENT1A, blockTrail, madKeyA, serNum); //auth with MAD key
+              }
+             if (status != MI_OK)
+             {
+                 selectCard(0);
+                 status = MFRC522_Auth(PICC_AUTHENT1A, blockTrail, NDEFKeyA, serNum); //auth NDEF data key
+             }
+
+             if (status == MI_OK)
+	         {
+                 status = MFRC522_Read(blockRead, buffer);
+                 StopCrypto1();
+             if (status == MI_OK)
+             {
+                 return MI_OK;
+              }
+              else
+             {
+
+                   return MI_ERR;
+              }
+         }
+         else
+         {
+                return MI_ERR;
+          }
+
+
+	    }
+	    else
+	    {
+	        return MI_ERR;
+	    }
+
+
+}
+
 #endif
