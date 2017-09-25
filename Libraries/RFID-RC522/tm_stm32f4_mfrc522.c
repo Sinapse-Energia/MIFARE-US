@@ -1502,5 +1502,17 @@ void dumpHex(char* buffer, int len)
      }
   }
   //Serial.println(" ");
+
 }
+
+
+
+
+void StopCrypto1(void)
+{
+	  ClearBitMask(Status2Reg, 0x08);
+
+
+}
+
 #endif

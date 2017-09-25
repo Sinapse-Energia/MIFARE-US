@@ -208,6 +208,7 @@ int main(void)
 	                	   LCD_Write_String(bufferRFID);
 	                	   HAL_Delay(1000);
 	                	   LCD_Write_mifare_info(2);
+	                	   StopCrypto1();
 	                   }
 	              }
 
