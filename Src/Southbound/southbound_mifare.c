@@ -272,7 +272,7 @@ void CleanBufferReception(void) {
 
 }
 
-void FillTags()
+/*void FillTags()
 {
 
 	strcpy(stags.tag1, "%3Chorfeus%3E");
@@ -308,6 +308,44 @@ void FillTags()
 	strcpy(etags.tag15, "%3C%2FTipoAula%3E");
 	strcpy(etags.tag16, "%3C%2Fserie%3E");
 
+}*/
+
+void FillTags()
+{
+
+	strcpy(stags.tag1, "<horfeus>");
+	strcpy(stags.tag2, "<firma>");
+	strcpy(stags.tag3, "<aula>");
+	strcpy(stags.tag4, "<aulas>");
+	strcpy(stags.tag5, "<IP>");
+	strcpy(stags.tag6, "<resultado>");
+	strcpy(stags.tag7, "<dispositivo>");
+	strcpy(stags.tag8, "<lista>");
+	strcpy(stags.tag9, "<codigo>");
+	strcpy(stags.tag10, "<edificio>");
+	strcpy(stags.tag11, "<tipo>");
+	strcpy(stags.tag12, "<nombre>");
+	strcpy(stags.tag13, "<TipoCliente>");
+	strcpy(stags.tag14, "<tiempo>");
+	strcpy(stags.tag15, "<TipoAula>");
+	strcpy(stags.tag16, "<serie>");
+	strcpy(etags.tag1, "</horfeus>");
+	strcpy(etags.tag2, "</firma>");
+	strcpy(etags.tag3, "</aula>");
+	strcpy(etags.tag4, "</aulas>");
+	strcpy(etags.tag5, "</IP>");
+	strcpy(etags.tag6, "</resultado>");
+	strcpy(etags.tag7, "</dispositivo>");
+	strcpy(etags.tag8, "</lista>");
+	strcpy(etags.tag9, "</codigo>");
+	strcpy(etags.tag10, "</edificio>");
+	strcpy(etags.tag11, "</tipo>");
+	strcpy(etags.tag12, "</nombre>");
+	strcpy(etags.tag13, "</TipoCliente>");
+	strcpy(etags.tag14, "</tiempo>");
+	strcpy(etags.tag15, "</TipoAula>");
+	strcpy(etags.tag16, "</serie>");
+
 }
 
 char *Encode_XML(HTTP_METHOD method, Memory_Context context)
@@ -318,61 +356,76 @@ char *Encode_XML(HTTP_METHOD method, Memory_Context context)
 	for (int i=0; i<300;i++) XML_msg[i]=0;
 
 	memcpy(context.ClientType,"4",1);
-	memcpy(context.Building ,"43",2);
-	memcpy(context.Classroom_Type, "6",1);
-	memcpy(context.Classroom , "RM120022",8);
+	memcpy(context.Building ,"44",2);
+	memcpy(context.Classroom_Type, "5",1);
+	memcpy(context.Classroom , "RM120A2",8);
+	memcpy(context.Time_server, "25/09/2017 13:15:00",19);
 	memcpy(context.Serie , "00394492", 8);
 
 	switch (method)
 	{
 		case GET:
 
-			memcpy(XML_msg+counter, stags.tag1, 13); counter+=13;
+			/*memcpy(XML_msg+counter, stags.tag1, 13); counter+=13;
 			memcpy(XML_msg+counter, stags.tag4,11); counter+=11;
 			memcpy(XML_msg+counter, stags.tag5,8); counter+=8;
 			memcpy(XML_msg+counter, IP_Device, strlen(IP_Device));
 			counter+=strlen(IP_Device);
 			//memcpy(XML_msg+counter, Context.IP, strlen(Context.IP));
 			//counter+=strlen(Context.IP);
-			memcpy(XML_msg+counter, etags.tag5, 11); counter+=11;
+			memcpy(XML_msg+counter, etags.tag5, 11); counter+=1;
 			memcpy(XML_msg+counter, etags.tag4, 14); counter+=14;
 			memcpy(XML_msg+counter, etags.tag1, 16); counter+=16;
+			memcpy(XML_msg+counter, "\0",1);*/
+
+			memcpy(XML_msg+counter, stags.tag1, 9); counter+=9;
+			memcpy(XML_msg+counter, stags.tag4,7); counter+=7;
+			memcpy(XML_msg+counter, stags.tag5,4); counter+=4;
+			memcpy(XML_msg+counter, IP_Device, strlen(IP_Device));
+			counter+=strlen(IP_Device);
+			//memcpy(XML_msg+counter, Context.IP, strlen(Context.IP));
+			//counter+=strlen(Context.IP);
+			memcpy(XML_msg+counter, etags.tag5, 5); counter+=5;
+			memcpy(XML_msg+counter, etags.tag4, 8); counter+=8;
+			memcpy(XML_msg+counter, etags.tag1, 10); counter+=10;
 			memcpy(XML_msg+counter, "\0",1);
 
 			break;
 
 		case POST:
 
-			memcpy(XML_msg+counter, stags.tag1, 13); counter+=13;
-			memcpy(XML_msg+counter, stags.tag2,11); counter+=11;
-			memcpy(XML_msg+counter, stags.tag5,8); counter+=8;
+			memcpy(XML_msg+counter, stags.tag1, 9); counter+=9;
+			memcpy(XML_msg+counter, stags.tag2,7); counter+=7;
+			memcpy(XML_msg+counter, stags.tag5,4); counter+=4;
 			memcpy(XML_msg+counter, IP_Device, strlen(IP_Device));
 			counter+=strlen(IP_Device);
-			memcpy(XML_msg+counter, etags.tag5, 11); counter+=11;
-			memcpy(XML_msg+counter, stags.tag13, 17); counter+=17;
+			memcpy(XML_msg+counter, etags.tag5, 5); counter+=5;
+			memcpy(XML_msg+counter, stags.tag13, 13); counter+=13;
 			memcpy(XML_msg+counter, context.ClientType, strlen(context.ClientType));
 			counter+=strlen(context.ClientType);
-			memcpy(XML_msg+counter, etags.tag13, 20); counter+=20;
-			memcpy(XML_msg+counter, stags.tag14, 12); counter+=12;
+			memcpy(XML_msg+counter, etags.tag13, 14); counter+=14;
+			memcpy(XML_msg+counter, stags.tag14, 8); counter+=8;
 			memcpy(XML_msg+counter, context.Time_server, strlen(context.Time_server));
 			counter+=strlen(context.Time_server);
-			memcpy(XML_msg+counter, etags.tag14, 15); counter+=15;
-			memcpy(XML_msg+counter, stags.tag10, 14); counter+=14;
+			memcpy(XML_msg+counter, etags.tag14, 9); counter+=9;
+			memcpy(XML_msg+counter, stags.tag10, 10); counter+=10;
 			memcpy(XML_msg+counter, context.Building, strlen(context.Building));
 			counter+=strlen(context.Building);
-			memcpy(XML_msg+counter, etags.tag10, 17); counter+=17;
-			memcpy(XML_msg+counter, stags.tag15, 14); counter+=14;
+			memcpy(XML_msg+counter, etags.tag10, 11); counter+=11;
+			memcpy(XML_msg+counter, stags.tag15, 10); counter+=10;
 			memcpy(XML_msg+counter, context.Classroom_Type, strlen(context.Classroom_Type));
 			counter+=strlen(context.Classroom_Type);
-			memcpy(XML_msg+counter, etags.tag15, 17); counter+=17;
-			memcpy(XML_msg+counter, stags.tag3, 10); counter+=10;
+			memcpy(XML_msg+counter, etags.tag15, 11); counter+=11;
+			memcpy(XML_msg+counter, stags.tag3, 6); counter+=6;
 			memcpy(XML_msg+counter, context.Classroom, strlen(context.Classroom));
 			counter+=strlen(context.Classroom);
-			memcpy(XML_msg+counter, etags.tag3, 13); counter+=13;
-			memcpy(XML_msg+counter, stags.tag16, 11); counter+=11;
+			memcpy(XML_msg+counter, etags.tag3, 7); counter+=7;
+			memcpy(XML_msg+counter, stags.tag16, 7); counter+=7;
 			memcpy(XML_msg+counter, context.Serie, strlen(context.Serie));
 			counter+=strlen(context.Serie);
-			memcpy(XML_msg+counter, etags.tag16, 14); counter+=14;
+			memcpy(XML_msg+counter, etags.tag16, 8); counter+=8;
+			memcpy(XML_msg+counter, etags.tag2, 8); counter+=8;
+			memcpy(XML_msg+counter, etags.tag1, 10); counter+=10;
 			memcpy(XML_msg+counter, "\0",1);
 
 			break;
@@ -398,6 +451,8 @@ char *Build_HTTP_msg(char *Payload, HTTP_METHOD method)
 			strcat(HTTP_array, HTTP_HEADER_PROTOCOL);
 			strcat(HTTP_array, CARRIAGE_RETURN);
 			strcat(HTTP_array, NEWLINE);
+			strcat(HTTP_array, HTTP_HOST);
+			//strcat(HTTP_array, " ");
 			strcat(HTTP_array, TCP_Server_Domain);
 			strcat(HTTP_array, CARRIAGE_RETURN);
 			strcat(HTTP_array, NEWLINE);
@@ -408,7 +463,7 @@ char *Build_HTTP_msg(char *Payload, HTTP_METHOD method)
 
 		case POST:
 
-			strcpy(HTTP_array, HTTP_METHOD_POST);
+			strcpy(HTTP_array, HTTP_METHOD_GET);
 			strcat(HTTP_array, " ");
 			strcat(HTTP_array,HTTP_HEADER_DESTINATION);
 			strcat(HTTP_array, Payload);
@@ -416,6 +471,7 @@ char *Build_HTTP_msg(char *Payload, HTTP_METHOD method)
 			strcat(HTTP_array, HTTP_HEADER_PROTOCOL);
 			strcat(HTTP_array, CARRIAGE_RETURN);
 			strcat(HTTP_array, NEWLINE);
+			strcat(HTTP_array, HTTP_HOST);
 			strcat(HTTP_array, TCP_Server_Domain);
 			strcat(HTTP_array, CARRIAGE_RETURN);
 			strcat(HTTP_array, NEWLINE);
@@ -442,7 +498,7 @@ uint8_t HTTP_request(char *HTTPbuffer)
 	HAL_Delay(1000);
 	sendingATCommands(&huart1, 100, 500,14, (uint8_t *)"at+SAtMode0=0\r\n", messageRX);
 	CleanBufferReception();
-	while(BufferReceptionCounter == 0)
+	while(BufferReceptionCounter < 250)
 	{
 		//Active interruption
 		MIC_UART_Get_Data(&huart1, &data, 1);
@@ -451,15 +507,19 @@ uint8_t HTTP_request(char *HTTPbuffer)
 		//MIC_UART_Send_Data(&huart1,(uint8_t*)"GET /index.htm HTTP/1.1\r\nHost: 192.168.1.116\r\n\r\n",48,100);
 		MIC_UART_Send_Data(&huart1,(uint8_t*)mensaje,strlen(mensaje),100);
 
-		HAL_Delay(500);
+		HAL_Delay(700);
 		if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
 
-		if (BufferReceptionCounter>0)
+		if (BufferReceptionCounter >0)
+			//if (BufferReceptionCounter > 0 )
 		{
-			free(mensaje);
+			CleanBufferReception();
+			//free(mensaje);
 			//HAL_Delay(4000);
 			//INTERPRETAR RESPUESTA DEL SERVIDOR
 		}
 		if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
 	}
+	CleanBufferReception();
+	return 1;
 }

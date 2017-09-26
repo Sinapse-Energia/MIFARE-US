@@ -731,7 +731,7 @@ HKStatus HK_Connect(HK_Working_Mode mode, Network_Mode netmode, UART_HandleTypeD
 						strcpy(msgTX,"at+NDomain0=");
 						strcat(msgTX, NTP_Server_Domain);
 						strcat(msgTX, "\r\n");
-						sendingATCommands(&huart1, timeoutTx, timeoutRx, 29,(uint8_t*) msgTX,
+						sendingATCommands(&huart1, timeoutTx, timeoutRx, 22,(uint8_t*) msgTX,
 								messageRX);
 
 						if(strstr((const char *)bufferReception, (const char *)"at+RNDomain0")) responseOK = 1;
