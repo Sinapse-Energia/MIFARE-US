@@ -221,9 +221,9 @@ int main(void)
 
   /*NTP Synchronization*/
   //Device must connect to NTP server to get datetime.
-  while (NTP_Sync_state != 0)
-	  NTP_Sync_state = NTP_Sync();
-  //if (NTP_Sync_state == 0) LCD_Write_mifare_info(5); //Debug: NTP OK*/
+  //while (NTP_Sync_state != 0)
+//	NTP_Sync_state = NTP_Sync();
+ // if (NTP_Sync_state == 0) LCD_Write_mifare_info(5); //Debug: NTP OK*/
 
   //HAL_Delay(10000); //Delay 10secs until WIFI restart
   CleanBufferReception(); //Clean buffer reception
@@ -237,17 +237,23 @@ int main(void)
 
   //Now, the device should connect to TCP_Server_Domain
   TCP_Status = TCP_Connect(0, 0,  &huart1, 2, 100, 500, messageRX);
-  //HAL_Delay(10000);
+  HAL_Delay(10000);
   //Build the message to send in GET request
 
-  char *XMLarray = Encode_XML(0, Context); //Testing
+ char *XMLarray = Encode_XML(0, Context); //Testing
 
   char *HTTP_msg = Build_HTTP_msg(XMLarray, 0); //Testing
 
+  statusInitialization = HTTP_request(HTTP_msg); //Testing
 
-   //statusInitialization = HTTP_request(HTTP_msg); //Testing
-  statusInitialization = 1;
-   if (statusInitialization == 1) LCD_Write_mifare_info(Normal);
+  //char *XMLarray = Encode_XML(1, Context); //Testing
+
+ //   char *HTTP_msg = Build_HTTP_msg(XMLarray, 1); //Testing
+
+  //  statusInitialization = HTTP_request(HTTP_msg); //Testing
+  //statusInitialization = 1;
+
+  if (statusInitialization == 1) LCD_Write_mifare_info(Normal);
 
 
 
@@ -321,6 +327,13 @@ int main(void)
 					   LCD_SetCursor(10,23);
 					   LCD_Write_String(bufferRFID);
 					   strcpy(Context.Serie, bufferRFID);
+
+					   char *XMLpost = Encode_XML(1, Context); //Testing
+
+					   char *HTTP_msg_post = Build_HTTP_msg(XMLpost, 1); //Testing
+
+					   statusInitialization = HTTP_request(HTTP_msg_post); //Testing
+					     //statusInitialization = 1;
 
 				   }
 			  }

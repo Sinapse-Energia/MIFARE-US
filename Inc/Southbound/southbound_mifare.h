@@ -36,7 +36,7 @@ typedef struct{
 
 Memory_Context Context;
 
-typedef struct{
+/*typedef struct{
 
 	char tag1[13]; //<horfeus>
 	char tag2[11]; //<firma>
@@ -55,10 +55,29 @@ typedef struct{
 	char tag15[14]; //<TipoAula>
 	char tag16[11]; //<serie>
 
+}Start_TAGS;*/
+typedef struct{
+
+	char tag1[9]; //<horfeus>
+	char tag2[7]; //<firma>
+	char tag3[6]; //<aula>
+	char tag4[7]; //<aulas>
+	char tag5[4]; //<IP>
+	char tag6[11]; //<resultado>
+	char tag7[13]; //<dispositivo>
+	char tag8[7]; //<lista>
+	char tag9[8]; //<codigo>
+	char tag10[10]; //<edificio>
+	char tag11[6]; //<tipo>
+	char tag12[8]; //<nombre>
+	char tag13[13]; //<TipoCliente>
+	char tag14[8]; //<tiempo>
+	char tag15[10]; //<TipoAula>
+	char tag16[7]; //<serie>
+
 }Start_TAGS;
 
-
-typedef struct{
+/*typedef struct{
 
 	char tag1[16]; //</horfeus>
 	char tag2[14]; //</firma>
@@ -77,8 +96,27 @@ typedef struct{
 	char tag15[17]; //</TipoAula>
 	char tag16[14]; //</serie>
 
-}End_TAGS;
+}End_TAGS;*/
+typedef struct{
 
+	char tag1[10]; //</horfeus>
+	char tag2[8]; //</firma>
+	char tag3[7]; //</aula>
+	char tag4[8]; //</aulas>
+	char tag5[5]; //</IP>
+	char tag6[12]; //</resultado>
+	char tag7[14]; //</dispositivo>
+	char tag8[8]; //</lista>
+	char tag9[9]; //</codigo>
+	char tag10[11]; //</edificio>
+	char tag11[7]; //</tipo>
+	char tag12[9]; //</nombre>
+	char tag13[14]; //</TipoCliente>
+	char tag14[9]; //</tiempo>
+	char tag15[11]; //</TipoAula>
+	char tag16[8]; //</serie>
+
+}End_TAGS;
 
 typedef enum{
 	GET = 0, POST = 1
