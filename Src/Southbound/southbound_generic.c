@@ -1163,7 +1163,7 @@ uint8_t HTTP_request1(char *HTTPbuffer)
 	else return 0;
 }
 
- uint8_t HTTP_request2(char *HTTPbuffer)
+ uint8_t HTTP_request(char *HTTPbuffer)
 {
 	uint8_t decodeStatus = 0;
 	extern char *RegisterResponse;
@@ -1173,7 +1173,8 @@ uint8_t HTTP_request1(char *HTTPbuffer)
 	uint16_t lengthOfmessage = 0;
 	timeoutUART = 0;
 	elapsed10seconds=0;
-	//CleanBufferReception();
+
+
 	//Select UART0 interface to send message
 	MIC_Set_Digital_Output_status(2,0);
 	HAL_Delay(500);
@@ -1187,14 +1188,11 @@ uint8_t HTTP_request1(char *HTTPbuffer)
 	UARTStatus = MIC_UART_Get_Data(&huart1, &data, 1); //IRQ active
 	UARTStatus = MIC_UART_Send_Data(&huart1, mensaje, strlen(mensaje),100);
 
-	//while ((BufferReceptionCounter < MIN_BUFFERRECEPTION_SIZE)
-	//while ((BufferReceptionCounter != MIN_BUFFERRECEPTION_SIZE)
-	//		|| (BufferReceptionCounter != MAX_BUFFERRECEPTION_SIZE)
-	//		& (timeoutUART == 0))
-	while ((BufferReceptionCounter <1000)
+
+	while ((BufferReceptionCounter <MAX_BUFFERRECEPTION_SIZE)
 				& (timeoutUART == 0))
 			;
-	if((BufferReceptionCounter == MIN_BUFFERRECEPTION_SIZE) || (BufferReceptionCounter == MIN_BUFFERRECEPTION_SIZE) )
+	if((BufferReceptionCounter == MIN_BUFFERRECEPTION_SIZE) | (BufferReceptionCounter == MAX_BUFFERRECEPTION_SIZE) )
 	{
 		decodeStatus = decodeServerResponse(bufferReception);
 	}

@@ -76,6 +76,46 @@
 //#define PORST_GPIO_Port GPIOC
 /* USER CODE BEGIN Private defines */
 
+//Unused GPIO's
+
+#define GPIO_PA0 GPIO_PIN_0
+#define GPIO_PA0_GPIO_Port GPIOA
+#define GPIO_PA1 GPIO_PIN_1
+#define GPIO_PA1_GPIO_Port GPIOA
+#define GPIO_PA2 GPIO_PIN_2
+#define GPIO_PA2_GPIO_Port GPIOA
+#define GPIO_PA3 GPIO_PIN_3
+#define GPIO_PA3_GPIO_Port GPIOA
+#define GPIO_PA4 GPIO_PIN_4
+#define GPIO_PA4_GPIO_Port GPIOA
+#define GPIO_PA5 GPIO_PIN_5
+#define GPIO_PA5_GPIO_Port GPIOA
+#define GPIO_PA6 GPIO_PIN_6
+#define GPIO_PA6_GPIO_Port GPIOA
+#define GPIO_PA7 GPIO_PIN_7
+#define GPIO_PA7_GPIO_Port GPIOA
+#define GPIO_PA8 GPIO_PIN_8
+#define GPIO_PA8_GPIO_Port GPIOA
+#define GPIO_PA11 GPIO_PIN_11
+#define GPIO_PA11_GPIO_Port GPIOA
+#define GPIO_PA12 GPIO_PIN_12
+#define GPIO_PA12_GPIO_Port GPIOA
+
+#define GPIO_PB8 GPIO_PIN_8
+#define GPIO_PB8_GPIO_Port GPIOB
+#define GPIO_PB10 GPIO_PIN_10
+#define GPIO_PB10_GPIO_Port GPIOB
+#define GPIO_PB11 GPIO_PIN_12
+#define GPIO_PB11_GPIO_Port GPIOB
+#define GPIO_PB12 GPIO_PIN_12
+#define GPIO_PB12_GPIO_Port GPIOB
+#define GPIO_PB14 GPIO_PIN_14
+#define GPIO_PB14_GPIO_Port GPIOB
+#define GPIO_PB15 GPIO_PIN_15
+#define GPIO_PB15_GPIO_Port GPIOB
+
+#define GPIO_PC15 GPIO_PIN_15
+#define GPIO_PC15_GPIO_Port GPIOC
 /* USER CODE END Private defines */
 
 void _Error_Handler(char *, int);

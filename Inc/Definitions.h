@@ -50,7 +50,7 @@
 
 #define MIN_BUFFERRECEPTION_SIZE 	436
 #define MAX_BUFFERRECEPTION_SIZE	588
-#define TIMING_TIMEOUT_UART 5// cada 10 segundos máximo
+#define TIMING_TIMEOUT_UART 		10		// 10 seconds
 
 #define BLOCKTRAIL_RFID	63
 #define BLOCKREAD_RFID	62

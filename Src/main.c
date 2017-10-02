@@ -178,6 +178,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  GPIO_default();
   MX_I2C1_Init();
   MX_RTC_Init();
   if (WDT_ENABLED==1)
@@ -239,7 +240,7 @@ int main(void)
 	//Build HTTP message (Headers + Payload)
 	HTTP_msg = Build_HTTP_msg(GET, XMLarray);
 	//Send HTTP frame
-	RequestStatus = HTTP_request2(HTTP_msg);
+	RequestStatus = HTTP_request(HTTP_msg);
 
 	if (RequestStatus == 1) LCD_Write_mifare_info(Normal);
 	HAL_Delay(1000);
@@ -272,7 +273,7 @@ int main(void)
 
 		LCD_Write_mifare_info(Registering);
 
-		RequestStatus = HTTP_request2(HTTP_msg_post); //Was repeated
+		RequestStatus = HTTP_request(HTTP_msg_post); //Was repeated
 		if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
 		HAL_Delay(500);
 		//LCD_Write_mifare_info(5);
@@ -303,9 +304,9 @@ int main(void)
 
 
 
-#ifdef CLOCK_26MHZ_APB113MHZ
+//#ifdef CLOCK_26MHZ_APB113MHZ
 /// All to 26MHz APB1 to 13MHz
-void SystemClock_Config(void)
+/*void SystemClock_Config(void)
 {
 
   RCC_OscInitTypeDef RCC_OscInitStruct;
@@ -352,9 +353,62 @@ void SystemClock_Config(void)
   HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
 
   HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
-}
-#endif
+}*/
+//#endif
+void SystemClock_Config(void)
+{
 
+  RCC_OscInitTypeDef RCC_OscInitStruct;
+  RCC_ClkInitTypeDef RCC_ClkInitStruct;
+  RCC_PeriphCLKInitTypeDef PeriphClkInit;
+
+    /**Initializes the CPU, AHB and APB busses clocks
+    */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI14|RCC_OSCILLATORTYPE_LSI
+                              |RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+  RCC_OscInitStruct.HSI14State = RCC_HSI14_ON;
+  RCC_OscInitStruct.HSI14CalibrationValue = 16;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+    /**Initializes the CPU, AHB and APB busses clocks
+    */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSE;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+  //PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1;
+  //PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK1;
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_RTC;
+  PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSI;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
+    /**Configure the Systick interrupt time
+    */
+  HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
+
+    /**Configure the Systick
+    */
+  HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
+
+  /* SysTick_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
+}
 
 
 /* I2C1 init function */

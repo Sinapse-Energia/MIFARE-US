@@ -114,7 +114,7 @@ uint8_t NTP_Sync(void);
 char *Build_HTTP_msg(HTTP_METHOD method, char *Payload);
 
 uint8_t HTTP_request1(char *HTTPbuffer);
-uint8_t HTTP_request2(char *HTTPbuffer);
+uint8_t HTTP_request(char *HTTPbuffer);
 //***********************************************************************************************************
 // DESCRIPTION: Functions that Set & Get internal RTC time and date. This function receive as parameters
 // the RTC handle and RTC date & time structs.

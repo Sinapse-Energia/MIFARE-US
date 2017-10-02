@@ -149,7 +149,7 @@ void LCD_Write_mifare_info(Device_Status status)
 
 		case Testing:
 
-			strcpy(info_string,Context.IP_server);
+			strcpy(info_string,"TESTING");
 			LCD_Display_Update();
 			LCD_SetCursor(5,25);
 			LCD_Write_String(info_string, Font_7x10);
@@ -419,5 +419,34 @@ uint8_t decodeServerResponse(char *bufferdecode)
 	return decodenumbertags;
 }
 
+void GPIO_default(void)
+{
+	GPIO_InitTypeDef GPIO_InitStruct;
 
+	/* GPIO Ports Clock Enable */
+	__HAL_RCC_GPIOC_CLK_ENABLE();
+	__HAL_RCC_GPIOA_CLK_ENABLE();
+	__HAL_RCC_GPIOB_CLK_ENABLE();
+
+	GPIO_InitStruct.Pin = GPIO_PA0 | GPIO_PA1 | GPIO_PA2 | GPIO_PA3 | GPIO_PA4
+							| GPIO_PA5 | GPIO_PA6 | GPIO_PA7 | GPIO_PA8 | GPIO_PA11 | GPIO_PA12;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+	GPIO_InitStruct.Pin = GPIO_PB8 | GPIO_PB10 | GPIO_PB11 | GPIO_PB12 | GPIO_PB14
+								| GPIO_PB15;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+	GPIO_InitStruct.Pin = GPIO_PC15;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+}
 
