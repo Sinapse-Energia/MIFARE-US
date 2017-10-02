@@ -12,6 +12,10 @@
 #include "fonts.h"
 #include "Definitions.h"
 #include "string.h"
+#include "time.h"
+#include "stdlib.h"
+#include "stdio.h"
+#include "tm_stm32f4_mfrc522.h"
 
 extern struct _spiControl spiControl;
 
@@ -29,7 +33,26 @@ extern char *IP_Local_Port;
 extern uint8_t WDT_ENABLED;
 extern HKStatus HK_Status;
 extern TCPStatus TCP_Status;
+extern NTPStatus NTP_Status;
+extern 	HAL_StatusTypeDef UARTStatus;
 extern unsigned char NTPpacket[NTP_PACKET_SIZE];
+extern char NTPbuffer[20];
+extern unsigned int elapsed10seconds;
+
+extern RTC_HandleTypeDef hrtc;
+extern RTC_TimeTypeDef structTimeRTC;
+extern RTC_DateTypeDef structDateRTC;
+
+//4 bytes Serial number of card, the 5th byte is crc
+extern unsigned char serNum[5];
+//7 bytes Serial number of card, the 8th byte is crc
+extern unsigned char serNum7[8];
+//buffer
+//uchar str[MAX_LEN];
+
+extern unsigned char defaultKeyA[16];
+extern unsigned char madKeyA[16];
+extern unsigned char NDEFKeyA[16];
 ///////////////////////////////////////////////////////////////////////////////////////
 /* Internal FLASH memory functions */
 int MIC_Flash_Memory_Write(const uint8_t *data_in, uint32_t size)
@@ -185,25 +208,25 @@ void MIC_Set_Digital_Output_status(GPIO_Pin_Select pin, PIN_Status status)
 {
 	switch (pin)
 	{
-		case 0:
+		case LED_Status_Pin:
 
 			if(status == 0) HAL_GPIO_WritePin(LED_STATUS_GPIO_Port, LED_STATUS_Pin, GPIO_PIN_RESET);
 			if(status == 1) HAL_GPIO_WritePin(LED_STATUS_GPIO_Port, LED_STATUS_Pin, GPIO_PIN_SET);
 			break;
 
-		case 1:
+		case Buzzer_Pin:
 
 			if(status == 0) HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
 			if(status == 1) HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_SET);
 			break;
 
-		case 2:
+		case ES0_UART0:
 
 			if(status == 0) HAL_GPIO_WritePin(ES0_GPIO_Port, ES0_Pin, GPIO_PIN_RESET);
 			if(status == 1) HAL_GPIO_WritePin(ES0_GPIO_Port, ES0_Pin, GPIO_PIN_SET);
 			break;
 
-		case 3:
+		case ES1_UART0:
 
 			if(status == 0) HAL_GPIO_WritePin(ES1_GPIO_Port, ES1_Pin, GPIO_PIN_RESET);
 			if(status == 1) HAL_GPIO_WritePin(ES1_GPIO_Port, ES1_Pin, GPIO_PIN_SET);
@@ -220,28 +243,62 @@ void MIC_Set_Digital_Output_status(GPIO_Pin_Select pin, PIN_Status status)
 }
 
 
-void LCD_Write_String(char *string)
+void LCD_Write_String(char *string, FontDef sizefont)
 {
-	ssd1306_WriteString(string, Font_7x10, Black);
+	ssd1306_WriteString(string, sizefont, Black);
 	ssd1306_UpdateScreen();
 }
 ////////////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////////
 /* SB generic function to transmit and receive data via UART*/
-uint8_t MIC_UART_Send_Data(UART_HandleTypeDef *huart, unsigned char* messageTX, uint8_t lengthOfmessage, uint32_t timeoutTX)
+uint8_t MIC_UART_Send_Data(UART_HandleTypeDef *huart, unsigned char* messageTX, uint16_t lengthOfmessage, uint32_t timeoutTX)
 {
-	HAL_UART_Transmit(huart, messageTX,lengthOfmessage, timeoutTX);
+	UARTStatus = HAL_UART_Transmit(huart, messageTX,lengthOfmessage, timeoutTX);
+	return UARTStatus;
 }
 
-uint8_t MIC_UART_Get_Data(UART_HandleTypeDef *huart, unsigned char* messageRX, uint8_t Size)
+uint8_t MIC_UART_Get_Data(UART_HandleTypeDef *huart, char* messageRX, uint8_t Size)
 {
-	HAL_UART_Receive_IT(huart, messageRX, Size);
+	UARTStatus = HAL_UART_Receive_IT(huart, (uint8_t*)messageRX, Size);
+	return UARTStatus;
 }
+
+
+uint8_t sendingATCommands(UART_HandleTypeDef *phuart1, uint32_t timeoutTx,
+		uint32_t timeoutRx, uint32_t numberOfReceivedBytes,
+		unsigned char *messageTX, char *messageRX) {
+	int lengthOfmessage = 0;
+
+
+	//HAL_StatusTypeDef UARTStatus;
+
+	while (messageTX[lengthOfmessage++] != '\r')
+		;
+
+	UARTStatus = MIC_UART_Get_Data(phuart1, &data, 1); //IRQ active
+	UARTStatus = MIC_UART_Send_Data(phuart1, messageTX, lengthOfmessage,timeoutTx);
+
+	while ((BufferReceptionCounter < numberOfReceivedBytes)
+			& (timeoutUART == 0))
+		; /// Wait until numberOfReceivedBytes bytes is OK
+	HAL_Delay(timeoutRx); // además 100ms
+
+	messageRX = bufferReception;
+
+	if (UARTStatus == HAL_OK)
+		return 1;
+	else
+		return 0;
+
+}
+
+
+
 
 
 HKStatus HK_Set_Config (HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32_t retries,
-		uint32_t timeoutTx, uint32_t timeoutRx, unsigned char *messageRX)
+		uint32_t timeoutTx, uint32_t timeoutRx, char *messageRX)
 {
 	uint8_t responseOK = 0;
 	uint8_t retries_counter = 0;
@@ -499,12 +556,12 @@ HKStatus HK_Set_Config (HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32
 }
 
 
-HKStatus HK_Get_Config(HK_Working_Mode mode, UART_HandleTypeDef *phuart1, uint32_t retries, uint32_t timeoutTx, uint32_t timeoutRx, unsigned char *messageRX)
+HKStatus HK_Get_Config(HK_Working_Mode mode, UART_HandleTypeDef *phuart1, uint32_t retries, uint32_t timeoutTx, uint32_t timeoutRx, char *messageRX)
 {
 
 	uint8_t responseOK = 0;
 	uint8_t retries_counter = 0;
-	unsigned char *buffer=NULL;
+	char *buffer=NULL;
 	char msgTX[50];
 		for (int i=0; i<50;i++) msgTX[i]=0;
 
@@ -583,7 +640,7 @@ HKStatus HK_Get_Config(HK_Working_Mode mode, UART_HandleTypeDef *phuart1, uint32
 
 
 HKStatus HK_Connect(HK_Working_Mode mode, Network_Mode netmode, UART_HandleTypeDef *phuart, uint32_t retries,
-		uint32_t timeoutTx, uint32_t timeoutRx, unsigned char *messageRX)
+		uint32_t timeoutTx, uint32_t timeoutRx, char *messageRX)
 {
 	uint8_t responseOK = 0;
 	uint8_t retries_counter = 0;
@@ -596,9 +653,9 @@ HKStatus HK_Connect(HK_Working_Mode mode, Network_Mode netmode, UART_HandleTypeD
 
 			//RESET ES0 pin less 6 seconds to select UART0 interface
 			MIC_Set_Digital_Output_status(2,0);
-			HAL_Delay(1000);
+			HAL_Delay(600);
 			MIC_Set_Digital_Output_status(2,1);
-			HAL_Delay(1000);
+			//HAL_Delay(1000); Necessary??
 
 			if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
 
@@ -874,7 +931,7 @@ void MIC_Set_RTC (RTC_HandleTypeDef *hrtc, RTC_TimeTypeDef *sTime,RTC_DateTypeDe
 /*TCP generic functions*/
 
 TCPStatus TCP_Connect(HK_Working_Mode mode, Network_Mode netmode, UART_HandleTypeDef *phuart, uint32_t retries,
-		uint32_t timeoutTx, uint32_t timeoutRx, unsigned char *messageRX)
+		uint32_t timeoutTx, uint32_t timeoutRx,  char *messageRX)
 {
 	HK_Status = HK_Connect(mode, netmode,  phuart, retries, timeoutTx, timeoutRx, messageRX);
 
@@ -885,7 +942,7 @@ TCPStatus TCP_Connect(HK_Working_Mode mode, Network_Mode netmode, UART_HandleTyp
 }
 
 TCPStatus TCP_Set_Config(HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32_t retries,
-		uint32_t timeoutTx, uint32_t timeoutRx, unsigned char *messageRX)
+		uint32_t timeoutTx, uint32_t timeoutRx, char *messageRX)
 {
 	HK_Status = HK_Set_Config(mode, phuart, retries, timeoutTx, timeoutRx, messageRX);
 
@@ -896,7 +953,7 @@ TCPStatus TCP_Set_Config(HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint3
 }
 
 TCPStatus TCP_Get_Config(HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32_t retries, uint32_t timeoutTx,
-		uint32_t timeoutRx, unsigned char *messageRX)
+		uint32_t timeoutRx, char *messageRX)
 {
 	HK_Status = HK_Get_Config(mode, phuart, retries, timeoutTx, timeoutRx, messageRX);
 
@@ -908,35 +965,244 @@ TCPStatus TCP_Get_Config(HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint3
 
 uint8_t NTP_Sync(void)
 {
+
 	//Connect to NTP server
-	while(TCP_Status != 0 )
-		TCP_Status = TCP_Connect(0, 1,  &huart1, 2, 100, 500, messageRX);
+	//while(TCP_Status != 0 )
+	TCP_Status = TCP_Connect(UART0_to_ETH, UDP,  &huart1, RETRIES, TIMEOUT_TX, TIMEOUT_RX, messageRX);
 
 	//NTP server connection OK, TCP_Status = 0
-	if (TCP_Status == 0)
+	if (TCP_Status == TCP_OK)
 	{
+
+		HAL_Delay(8000);
+
+		//Put low level ES0 signal to select UART0
+		MIC_Set_Digital_Output_status(ES0_UART0,0);
+		HAL_Delay(600);
+		MIC_Set_Digital_Output_status(ES0_UART0,1);
+
+		//Refresh Watchdog timer
+		if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
+
+		//Establish WIFI device Transparent mode. numberOfReceivedBytes = 14
+		sendingATCommands(&huart1, TIMEOUT_TX, TIMEOUT_RX,14, (uint8_t *)"at+SAtMode0=0\r\n", messageRX);
+
 		CleanBufferReception();
-		//Wait for NTP response, size 48 bytes
-		while(BufferReceptionCounter < 48)
+		timeoutUART = 0;
+		elapsed10seconds=0;
+
+		//Wait for NTP response (size 48 bytes) or timeout 10 secs
+		while(BufferReceptionCounter < 48 && (timeoutUART == 0))
 		{
-			HAL_Delay(500);
+			//IRQ active
 			MIC_UART_Get_Data(&huart1, &data, 1);
 
-			MIC_UART_Send_Data(&huart1,(uint8_t*)&NTPpacket,48,100);
-			HAL_Delay(500);
-
-			if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
-			if (BufferReceptionCounter>0)
-			{
-				Get_NTP_Time(bufferReception);
-				HAL_Delay(100);
-				//CleanBufferReception();
-			}
-			if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
+			//Send the correct NTP packet
+			MIC_UART_Send_Data(&huart1,(uint8_t*)&NTPpacket,NTP_PACKET_SIZE, TIMEOUT_TX);
+			HAL_Delay(1000);
 		}
+		if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
+
+		if (BufferReceptionCounter >= 48)
+		{
+			NTP_Status = NTP_OK;
+			//Get NTP datetime, save it in Context and FLASH
+			Get_NTP_Time(bufferReception);
+		}
+		else if (timeoutUART == 1)	NTP_Status = NTP_FAIL;
+	}
+
+	return NTP_Status;
+}
+
+void Get_NTP_Time(char *buffer)
+{
+	uint32_t NTP_highReceived = 0;
+	uint32_t NTP_lowReceived = 0;
+	uint32_t NTP_timestampUnix = 0;
+	uint32_t NTP_result = 0;
+
+	NTP_highReceived = bufferReception[41] | bufferReception[40] << 8;
+	NTP_lowReceived = bufferReception[43] | bufferReception[42] << 8;
+	NTP_timestampUnix = NTP_highReceived << 16 | NTP_lowReceived;
+
+	NTP_result = NTP_timestampUnix - NTP_SEVENTYYEARS;
+	struct tm* NTP_time = gmtime((const time_t *)&NTP_result);
+
+	strftime(NTPbuffer,20,"%d/%m/%Y %X", NTP_time);
+
+	structTimeRTC.Hours = NTP_time->tm_hour;
+	structTimeRTC.Minutes = NTP_time->tm_min;
+	structTimeRTC.Seconds = NTP_time->tm_sec;
+
+	structTimeRTC.TimeFormat = RTC_HOURFORMAT12_AM;
+	structTimeRTC.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
+	structTimeRTC.StoreOperation = RTC_STOREOPERATION_RESET;
+
+	structDateRTC.Year = (NTP_time->tm_year + 1900 - 2000);
+	structDateRTC.Month = NTP_time->tm_mon +1;
+	structDateRTC.Date = NTP_time->tm_mday;
+
+	//Set internal RTC
+	MIC_Set_RTC (&hrtc, &structTimeRTC, &structDateRTC, RTC_FORMAT_BIN);
+
+	strcpy(Context.Time_server, (const char *)NTPbuffer);
+	//Update context in Flash
+	MIC_Flash_Memory_Write((const uint8_t *) &Context, sizeof(Context));
+
+}
+
+
+
+char *Build_HTTP_msg(HTTP_METHOD method, char *Payload)
+{
+	char HTTP_array[HTTP_ARRAY_SIZE];
+
+	switch(method)
+	{
+		case GET:
+
+			strcpy(HTTP_array, HTTP_METHOD_GET);
+			strcat(HTTP_array, " ");
+			strcat(HTTP_array,HTTP_HEADER_DESTINATION);
+			strcat(HTTP_array, Payload);
+			strcat(HTTP_array, " ");
+			strcat(HTTP_array, HTTP_HEADER_PROTOCOL);
+			strcat(HTTP_array, CARRIAGE_RETURN);
+			strcat(HTTP_array, NEWLINE);
+			strcat(HTTP_array, HTTP_HOST);
+			strcat(HTTP_array, Context.IP_server);
+			strcat(HTTP_array, CARRIAGE_RETURN);
+			strcat(HTTP_array, NEWLINE);
+			strcat(HTTP_array, CARRIAGE_RETURN);
+			strcat(HTTP_array, NEWLINE);
+
+			break;
+
+		case POST:
+
+			strcpy(HTTP_array, HTTP_METHOD_GET);
+			strcat(HTTP_array, " ");
+			strcat(HTTP_array,HTTP_HEADER_DESTINATION);
+			strcat(HTTP_array, Payload);
+			strcat(HTTP_array, " ");
+			strcat(HTTP_array, HTTP_HEADER_PROTOCOL);
+			strcat(HTTP_array, CARRIAGE_RETURN);
+			strcat(HTTP_array, NEWLINE);
+			strcat(HTTP_array, HTTP_HOST);
+			strcat(HTTP_array, Context.IP_server);
+			strcat(HTTP_array, CARRIAGE_RETURN);
+			strcat(HTTP_array, NEWLINE);
+			strcat(HTTP_array, CARRIAGE_RETURN);
+			strcat(HTTP_array, NEWLINE);
 
 	}
-	return TCP_Status;
+	char *HTTP_msg = HTTP_array;
+	return HTTP_msg;
+}
+
+
+uint8_t HTTP_request1(char *HTTPbuffer)
+{
+	uint8_t decodeStatus = 0;
+	uint8_t retries = 0;
+	extern char *GETResponse;
+	char *mensaje = malloc(strlen(HTTPbuffer));
+	strcpy(mensaje, HTTPbuffer);
+
+	//CleanBufferReception();
+	//Select UART0 interface to send message
+	MIC_Set_Digital_Output_status(2,0);
+	HAL_Delay(1000);
+	MIC_Set_Digital_Output_status(2,1);
+	HAL_Delay(1000);
+
+	//HERE SET AT TRANSPARENTMODE. THIS SHOULD BE CALLED FROM HERE NOT HARCODED
+
+	if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
+	sendingATCommands(&huart1, 100, 500,14, (uint8_t *)"at+SAtMode0=0\r\n", messageRX);
+	//SET TRANSPARENT MODE
+	HAL_Delay(1000); //WAIT FOR CHANGE MODE
+	CleanBufferReception();
+
+	//if(1) //Testing
+	while(BufferReceptionCounter <300 && retries < 5 )
+	{
+		retries++;
+		HAL_Delay(1000);
+		//Active interruption
+		MIC_UART_Get_Data(&huart1, &data, 1);
+
+		//Send message trhough UART , Leng: Leng of mensaje , Parameter 100 Tout TX
+
+		MIC_UART_Send_Data(&huart1,(uint8_t*)mensaje,strlen(mensaje),100); //Tout was in 100
+
+		//HAL_Delay(700);
+		if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
+
+		if (BufferReceptionCounter >0)
+		//if (1)
+
+			//if (BufferReceptionCounter > 0 )
+		{
+			//CleanBufferReception();
+			//decodeStatus = decodeXML(GETResponse);
+			decodeStatus = decodeServerResponse(bufferReception);
+			//free(mensaje);
+			//HAL_Delay(4000);
+			//INTERPRETAR RESPUESTA DEL SERVIDOR
+
+		}
+		if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
+
+	}
+	free(mensaje);
+	CleanBufferReception();
+
+	if(decodeStatus == 3 || decodeStatus == 1)	return 1;
+	else return 0;
+}
+
+ uint8_t HTTP_request2(char *HTTPbuffer)
+{
+	uint8_t decodeStatus = 0;
+	extern char *RegisterResponse;
+
+	char *mensaje = malloc(strlen(HTTPbuffer));
+	strcpy(mensaje, HTTPbuffer);
+	uint16_t lengthOfmessage = 0;
+	timeoutUART = 0;
+	elapsed10seconds=0;
+	//CleanBufferReception();
+	//Select UART0 interface to send message
+	MIC_Set_Digital_Output_status(2,0);
+	HAL_Delay(500);
+	MIC_Set_Digital_Output_status(2,1);
+	HAL_Delay(500);
+	if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
+	sendingATCommands(&huart1,100, 500,14, (uint8_t *)"at+SAtMode0=0\r\n", messageRX);
+	//HAL_Delay(10000);
+	CleanBufferReception();
+
+	UARTStatus = MIC_UART_Get_Data(&huart1, &data, 1); //IRQ active
+	UARTStatus = MIC_UART_Send_Data(&huart1, mensaje, strlen(mensaje),100);
+
+	//while ((BufferReceptionCounter < MIN_BUFFERRECEPTION_SIZE)
+	//while ((BufferReceptionCounter != MIN_BUFFERRECEPTION_SIZE)
+	//		|| (BufferReceptionCounter != MAX_BUFFERRECEPTION_SIZE)
+	//		& (timeoutUART == 0))
+	while ((BufferReceptionCounter <1000)
+				& (timeoutUART == 0))
+			;
+	if((BufferReceptionCounter == MIN_BUFFERRECEPTION_SIZE) || (BufferReceptionCounter == MIN_BUFFERRECEPTION_SIZE) )
+	{
+		decodeStatus = decodeServerResponse(bufferReception);
+	}
+	free(mensaje);
+	CleanBufferReception();
+
+	if(decodeStatus == 3 || decodeStatus == 1)	return 1;
+	else return 0;
 }
 
 
@@ -1144,7 +1410,7 @@ write_MOSI (GPIO_PinState value)
 
 	if (value==GPIO_PIN_RESET) HAL_GPIO_WritePin(PORT_spiTX, PIN_spiTX,GPIO_PIN_RESET);
 	else HAL_GPIO_WritePin(PORT_spiTX, PIN_spiTX,GPIO_PIN_SET);
-
+	return 0;
 }
 
 write_SCLK (GPIO_PinState value)
@@ -1152,7 +1418,7 @@ write_SCLK (GPIO_PinState value)
 
 	if (value==GPIO_PIN_RESET) HAL_GPIO_WritePin(PORT_spiClock, PIN_spiClock,GPIO_PIN_RESET);
 	else HAL_GPIO_WritePin(PORT_spiClock, PIN_spiClock,GPIO_PIN_SET);
-
+	return 0;
 }
 
 GPIO_PinState read_MISO (void)
@@ -1200,3 +1466,52 @@ uint8_t SPI_transfer_byte(uint8_t byte_out)
     return byte_in;
 
 }
+
+int RFID_Read_Memory_Block(int blockTrail, int blockRead, unsigned char *buffer)
+{
+	 int status=MI_ERR;
+
+	 if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
+
+	  if (selectCard(1))
+	    {
+
+             status = MFRC522_Auth(PICC_AUTHENT1A, blockTrail, defaultKeyA, serNum); //auth with default key
+             if (status != MI_OK)
+             {
+                 selectCard(0);
+	             status = MFRC522_Auth(PICC_AUTHENT1A, blockTrail, madKeyA, serNum); //auth with MAD key
+              }
+             if (status != MI_OK)
+             {
+                 selectCard(0);
+                 status = MFRC522_Auth(PICC_AUTHENT1A, blockTrail, NDEFKeyA, serNum); //auth NDEF data key
+             }
+
+             if (status == MI_OK)
+	         {
+                 status = MFRC522_Read(blockRead, buffer);
+                 StopCrypto1();
+             if (status == MI_OK)
+             {
+                 return MI_OK;
+              }
+              else
+             {
+
+                   return MI_ERR;
+              }
+         }
+         else
+         {
+                return MI_ERR;
+          }
+
+
+	    }
+	    else
+	    {
+	        return MI_ERR;
+	    }
+}
+

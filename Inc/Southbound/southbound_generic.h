@@ -15,15 +15,16 @@ extern "C" {
 #include "stm32f0xx_hal.h"
 #include "string.h"
 #include "Definitions.h"
-
+#include "fonts.h"
+#include "tm_stm32f4_mfrc522.h"
 
 extern UART_HandleTypeDef huart1;
-extern unsigned char messageRX[SIZE_BUFFER_RECEPTION];
-extern unsigned char bufferReception[SIZE_BUFFER_RECEPTION];
+extern char messageRX[SIZE_BUFFER_RECEPTION];
+extern char bufferReception[SIZE_BUFFER_RECEPTION];
 extern uint8_t  data;
 extern uint16_t BufferReceptionCounter;
 extern IWDG_HandleTypeDef hiwdg;
-extern uint8_t timeout;
+extern uint8_t timeoutUART;
 
 //// Flash init Address
 #define ADDR_FLASH_PAGE_127    ((uint32_t)0x0803f800) /* last flash sector 2k */
@@ -42,20 +43,15 @@ typedef enum {
 }PIN_Status;
 
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////
-/*LCD functions definitions*/
-void LCD_Set_Parameters(void);
-void LCD_Write_String(char *string);
-
-
 typedef enum {
 	LED_Status_Pin = 0, Buzzer_Pin = 1, ES0_UART0 = 2, ES1_UART0 = 3
 }GPIO_Pin_Select;
 
-void MIC_Set_Digital_Output_status(GPIO_Pin_Select pin, PIN_Status status);
+typedef enum{
+	GET = 0, POST = 1
+}HTTP_METHOD;
 
-uint8_t MIC_UART_Send_Data(UART_HandleTypeDef *huart, unsigned char* messageTX, uint8_t lengthOfmessage, uint32_t timeoutTX);
-uint8_t MIC_UART_Get_Data(UART_HandleTypeDef *huart, unsigned char* messageRX, uint8_t Size);
+HTTP_METHOD method;
 
 typedef enum {
 	UART0_to_ETH = 0
@@ -68,34 +64,57 @@ typedef enum {
 typedef enum {
 	HK_OK = 0, HK_UART_FAIL = -1
 } HKStatus;
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+/*LCD functions definitions*/
+void LCD_Set_Parameters(void);
+void LCD_Write_String(char *string, FontDef sizefont);
+
+
+
+void MIC_Set_Digital_Output_status(GPIO_Pin_Select pin, PIN_Status status);
+
+uint8_t MIC_UART_Send_Data(UART_HandleTypeDef *huart, unsigned char* messageTX, uint16_t lengthOfmessage, uint32_t timeoutTX);
+uint8_t MIC_UART_Get_Data(UART_HandleTypeDef *huart, char* messageRX, uint8_t Size);
+
+
 
 HKStatus HK_Set_Config (HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32_t retries,
-		uint32_t timeoutTx, uint32_t timeoutRx, unsigned char *messageRX);
+		uint32_t timeoutTx, uint32_t timeoutRx, char *messageRX);
 
 HKStatus HK_Connect(HK_Working_Mode mode, Network_Mode netmode, UART_HandleTypeDef *phuart, uint32_t retries,
-		uint32_t timeoutTx, uint32_t timeoutRx, unsigned char *messageRX);
+		uint32_t timeoutTx, uint32_t timeoutRx, char *messageRX);
 
 HKStatus HK_Get_Config(HK_Working_Mode mode, UART_HandleTypeDef *phuart1, uint32_t retries,
-		uint32_t timeoutTx, uint32_t timeoutRx, unsigned char *messageRX);
+		uint32_t timeoutTx, uint32_t timeoutRx, char *messageRX);
 
 uint8_t sendingATCommands(UART_HandleTypeDef *phuart1, uint32_t timeoutTx,
 		uint32_t timeoutRx, uint32_t numberOfReceivedBytes,
-		unsigned char *messageTX, unsigned char *messageRX);
+		unsigned char *messageTX, char *messageRX);
 
 typedef enum {
 	TCP_OK = 0, TCP_FAIL = 1
 } TCPStatus;
 
+typedef enum {
+	NTP_OK = 0, NTP_FAIL = 1
+} NTPStatus;
+
 TCPStatus TCP_Connect(HK_Working_Mode mode, Network_Mode netmode, UART_HandleTypeDef *phuart, uint32_t retries,
-		uint32_t timeoutTx, uint32_t timeoutRx, unsigned char *messageRX);
+		uint32_t timeoutTx, uint32_t timeoutRx, char *messageRX);
 
 TCPStatus TCP_Set_Config(HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32_t retries,
-		uint32_t timeoutTx, uint32_t timeoutRx, unsigned char *messageRX);
+		uint32_t timeoutTx, uint32_t timeoutRx, char *messageRX);
 
 TCPStatus TCP_Get_Config(HK_Working_Mode mode, UART_HandleTypeDef *phuart, uint32_t retries, uint32_t timeoutTx,
-		uint32_t timeoutRx, unsigned char *messageRX);
+		uint32_t timeoutRx, char *messageRX);
 
+int RFID_Read_Memory_Block(int blockTrail, int blockRead, unsigned char *buffer);
+void Get_NTP_Time(char *buffer);
 uint8_t NTP_Sync(void);
+char *Build_HTTP_msg(HTTP_METHOD method, char *Payload);
+
+uint8_t HTTP_request1(char *HTTPbuffer);
+uint8_t HTTP_request2(char *HTTPbuffer);
 //***********************************************************************************************************
 // DESCRIPTION: Functions that Set & Get internal RTC time and date. This function receive as parameters
 // the RTC handle and RTC date & time structs.

@@ -13,10 +13,12 @@ extern "C" {
 #endif
 
 #include "stm32f0xx_hal.h"
-
+#include "fonts.h"
+#include "southbound_generic.h"
 
 typedef enum {
-	Reading = 0, Registered = 1, Not_Registered =2, Normal = 3, Initialization = 4, RTC_display = 5
+	Reading = 0, Registered = 1, Not_Registered =2, Normal = 3, Initialization = 4, Registering = 5,
+	RTC_display = 6, Testing = 7
 }Device_Status;
 
 
@@ -36,97 +38,51 @@ typedef struct{
 
 Memory_Context Context;
 
-/*typedef struct{
 
-	char tag1[13]; //<horfeus>
-	char tag2[11]; //<firma>
-	char tag3[10]; //<aula>
-	char tag4[11]; //<aulas>
-	char tag5[8]; //<IP>
-	char tag6[15]; //<resultado
-	char tag7[17]; //<dispositivo>
-	char tag8[11]; //<lista>
-	char tag9[12]; //<codigo>
-	char tag10[14]; //<edificio>
-	char tag11[10]; //<tipo>
-	char tag12[12]; //<nombre>
-	char tag13[17]; //<TipoCliente>
-	char tag14[12]; //<tiempo>
-	char tag15[14]; //<TipoAula>
-	char tag16[11]; //<serie>
-
-}Start_TAGS;*/
 typedef struct{
 
-	char tag1[9]; //<horfeus>
-	char tag2[7]; //<firma>
-	char tag3[6]; //<aula>
-	char tag4[7]; //<aulas>
-	char tag5[4]; //<IP>
-	char tag6[11]; //<resultado>
-	char tag7[13]; //<dispositivo>
-	char tag8[7]; //<lista>
-	char tag9[8]; //<codigo>
-	char tag10[10]; //<edificio>
-	char tag11[6]; //<tipo>
-	char tag12[8]; //<nombre>
-	char tag13[13]; //<TipoCliente>
-	char tag14[8]; //<tiempo>
-	char tag15[10]; //<TipoAula>
-	char tag16[7]; //<serie>
-
+	char tag1[10]; //<horfeus>
+	char tag2[8]; //<firma>
+	char tag3[7]; //<aula>
+	char tag4[8]; //<aulas>
+	char tag5[5]; //<IP>
+	char tag6[12]; //<resultado>
+	char tag7[14]; //<dispositivo>
+	char tag8[8]; //<lista>
+	char tag9[9]; //<codigo>
+	char tag10[11]; //<edificio>
+	char tag11[7]; //<tipo>
+	char tag12[9]; //<nombre>
+	char tag13[14]; //<TipoCliente>
+	char tag14[9]; //<tiempo>
+	char tag15[11]; //<TipoAula>
+	char tag16[8]; //<serie>
+	char tag17[10]; //<registro>
 }Start_TAGS;
 
-/*typedef struct{
 
-	char tag1[16]; //</horfeus>
-	char tag2[14]; //</firma>
-	char tag3[13]; //</aula>
-	char tag4[14]; //</aulas>
-	char tag5[11]; //</IP>
-	char tag6[18]; //</resultado
-	char tag7[20]; //</dispositivo>
-	char tag8[14]; //</lista>
-	char tag9[15]; //</codigo>
-	char tag10[17]; //</edificio>
-	char tag11[13]; //</tipo>
-	char tag12[15]; //</nombre>
-	char tag13[20]; //</TipoCliente>
-	char tag14[15]; //</tiempo>
-	char tag15[17]; //</TipoAula>
-	char tag16[14]; //</serie>
-
-}End_TAGS;*/
 typedef struct{
 
-	char tag1[10]; //</horfeus>
-	char tag2[8]; //</firma>
-	char tag3[7]; //</aula>
-	char tag4[8]; //</aulas>
-	char tag5[5]; //</IP>
-	char tag6[12]; //</resultado>
-	char tag7[14]; //</dispositivo>
-	char tag8[8]; //</lista>
-	char tag9[9]; //</codigo>
-	char tag10[11]; //</edificio>
-	char tag11[7]; //</tipo>
-	char tag12[9]; //</nombre>
-	char tag13[14]; //</TipoCliente>
-	char tag14[9]; //</tiempo>
-	char tag15[11]; //</TipoAula>
-	char tag16[8]; //</serie>
+	char tag1[11]; //</horfeus>
+	char tag2[9]; //</firma>
+	char tag3[8]; //</aula>
+	char tag4[9]; //</aulas>
+	char tag5[6]; //</IP>
+	char tag6[13]; //</resultado>
+	char tag7[15]; //</dispositivo>
+	char tag8[9]; //</lista>
+	char tag9[10]; //</codigo>
+	char tag10[12]; //</edificio>
+	char tag11[8]; //</tipo>
+	char tag12[10]; //</nombre>
+	char tag13[15]; //</TipoCliente>
+	char tag14[10]; //</tiempo>
+	char tag15[12]; //</TipoAula>
+	char tag16[9]; //</serie>
+	char tag17[11]; //</registro>
 
 }End_TAGS;
 
-typedef enum{
-	GET = 0, POST = 1
-}HTTP_METHOD;
-
-HTTP_METHOD method;
-
-
-void FillTags();
-void encode_GET_msg(char *GET_msg);
 
 typedef struct
 {
@@ -157,27 +113,31 @@ typedef struct
 
 } ntp_packet;              // Total: 384 bits or 48 bytes.
 
-void LCD_Init(void);
-void LCD_Display_Update(void);
-void LCD_SetCursor(uint8_t x, uint8_t y);
-void LCD_Write_mifare_info(Device_Status status);
-void LCD_Write_String(char *string);
-
 
 typedef enum {
 	short_beep_1 = 1, short_beep_2 = 2, long_beep = 3
 }Buzzer_tone;
 
+
+void LCD_Init(void);
+void LCD_Display_Update(void);
+void LCD_SetCursor(uint8_t x, uint8_t y);
+void LCD_Write_mifare_info(Device_Status status);
+void LCD_Write_String(char *string, FontDef sizefont);
+void FillTags();
+
+
+
 void Buzzer_Control(Buzzer_tone tone);
 void PWM_signal_simulator(void);
 void Blink_LED_Status(Device_Status status);
+char *Encode_Payload(HTTP_METHOD method, Memory_Context context);
 
 void CleanBufferReception(void);
 
-void Get_NTP_Time(unsigned char *buffer);
-char *Buil_HTTP_msg(char *Payload, HTTP_METHOD method);
 
-uint8_t HTTP_request(char *HTTPbuffer);
+
+uint8_t decodeServerResponse(char *bufferdecode);
 
 #ifdef __cplusplus /* If this is a C++ compiler, use C linkage */
 }

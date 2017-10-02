@@ -46,7 +46,6 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/MIFARE-US/Inc/Southbound}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/MIFARE-US/Libraries/LCD_Display}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/MIFARE-US/Libraries/RFID-RC522}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/MIFARE-US/Drivers/STM32F0xx_StdPeriph_Driver/inc}&quot;"/>
 								</option>
 								<option id="com.atollic.truestudio.gcc.symbols.defined.1670122205" name="Defined symbols" superClass="com.atollic.truestudio.gcc.symbols.defined" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="__weak=__attribute__((weak))"/>
@@ -109,7 +108,7 @@
 								<option id="com.atollic.truestudio.common_options.target.interwork.1334840358" name="Mix ARM/Thumb" superClass="com.atollic.truestudio.common_options.target.interwork"/>
 							</tool>
 							<tool id="com.atollic.truestudio.exe.debug.toolchain.secoutput.839033486" name="Other" superClass="com.atollic.truestudio.exe.debug.toolchain.secoutput">
-								<option id="com.atollic.truestudio.secoutput.general.convert.1405679874" superClass="com.atollic.truestudio.secoutput.general.convert" value="true" valueType="boolean"/>
+								<option id="com.atollic.truestudio.secoutput.general.convert.1405679874" name="Convert build output" superClass="com.atollic.truestudio.secoutput.general.convert" value="true" valueType="boolean"/>
 							</tool>
 							<tool id="com.atollic.truestudio.ar.base.71324298" name="Archiver" superClass="com.atollic.truestudio.ar.base"/>
 						</toolChain>
@@ -149,7 +148,7 @@
 							<option id="com.atollic.truestudio.toolchain_options.mcu.2110397119" name="Microcontroller" superClass="com.atollic.truestudio.toolchain_options.mcu" value="STM32F030CC" valueType="string"/>
 							<option id="com.atollic.truestudio.toolchain_options.vendor.17752564" name="Vendor name" superClass="com.atollic.truestudio.toolchain_options.vendor" value="STMicroelectronics" valueType="string"/>
 							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.ELF" id="com.atollic.truestudio.exe.release.toolchain.platform.2054752829" isAbstract="false" name="Release platform" superClass="com.atollic.truestudio.exe.release.toolchain.platform"/>
-							<builder buildPath="${workspace_loc:/MIFARE-US}/Release" customBuilderProperties="com.atollic.truestudio.common_options.target.vendor=STMicroelectronics|com.atollic.truestudio.common_options.target.mcu=STM32F030C6|" id="com.atollic.truestudio.mbs.builder1.1222194476" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="CDT Internal Builder" superClass="com.atollic.truestudio.mbs.builder1">
+							<builder buildPath="${workspace_loc:/MIFARE-US}/Release" customBuilderProperties="toolChainpathString=C:/Program Files/Atollic/TrueSTUDIO for ARM 5.5.2/ARMTools/bin|toolChainpathType=1|com.atollic.truestudio.common_options.target.vendor=STMicroelectronics|com.atollic.truestudio.common_options.target.mcu=STM32F030C6|" id="com.atollic.truestudio.mbs.builder1.1222194476" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="CDT Internal Builder" superClass="com.atollic.truestudio.mbs.builder1">
 								<outputEntries>
 									<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="outputPath" name="Release"/>
 								</outputEntries>

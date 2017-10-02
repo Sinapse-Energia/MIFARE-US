@@ -67,6 +67,8 @@ RTC_HandleTypeDef hrtc;
 RTC_DateTypeDef structDateRTC;
 RTC_TimeTypeDef structTimeRTC;
 
+HAL_StatusTypeDef UARTStatus;
+
 //4 bytes Serial number of card, the 5th byte is crc
  unsigned char serNum[5];
 //7 bytes Serial number of card, the 8th byte is crc
@@ -80,7 +82,10 @@ RTC_TimeTypeDef structTimeRTC;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-
+ void Disable_All_INT(void);
+ void Disable_Ext_INT(void);
+ void Enable_Ext_INT(void);
+ void Enable_All_INT(void);
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -93,12 +98,13 @@ static void MX_TIM7_Init(void);
 static void MX_RTC_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_USART1_UART_Init(void);
-static void MX_USART5_UART_Init(void);
+
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
 #define WIFI_UART_HANDLE huart1
 #define RFID_UART_HANDLE huart5
+#define GPRS_TIMEOUT_TIMER htim7
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -107,27 +113,36 @@ uint8_t i = 0;
 
 uint8_t UartRFID = 0;
 uint8_t addressRFID,dataRFID;
-unsigned char bufferReception[SIZE_BUFFER_RECEPTION];
+char bufferReception[SIZE_BUFFER_RECEPTION];
 uint8_t  data = 0;
 uint16_t BufferReceptionCounter = 0;
-unsigned char messageRX[SIZE_BUFFER_RECEPTION];
-uint8_t timeout = 0;
+char messageRX[SIZE_BUFFER_RECEPTION];
+uint8_t timeoutUART = 0;
+unsigned int elapsed10seconds=0;
 HKStatus HK_Status;
 TCPStatus TCP_Status = -1;
+NTPStatus NTP_Status = -1;
 uint8_t NTP_Sync_state = -1;
 unsigned char bufferRFID[MAX_LEN];
 int statusRFID = -1;
-int statusInitialization = 0;
+uint8_t statusDecode = 0;
+uint8_t RequestStatus = 0;
 char dataReceived[8];
 unsigned char RFID_KEY[6]= {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
 unsigned char NTPpacket[NTP_PACKET_SIZE];
-//char *bufferNTP = NULL;
 char NTPbuffer[NTP_TIME_SIZE];
-char GET_msgstring[GET_MSG_SIZE];
+char *XMLarray = NULL;
+char *HTTP_msg = NULL;
+//char *test = "Prueba Envio Corto 1 Prueba Envio Corto 2 Prueba Envio Corto 3 Prueba Envio Corto 4 Prueba Envio Corto 1 Prueba Envio Corto 2 Prueba Envio Corto 3 Prueba Envio Corto 4 Prueba Envio Corto 4 Prueba Envio Corto 3 Prueba Envio Corto 4 Prueba Envio Corto 4 Prueba Envio Corto 4 Prueba Envio Corto 1 Prueba Envio Corto 2 Prueba Envio Corto 3 Prueba Envio Corto 4 Prueba Envio Corto 4 Prueba Envio Corto 3 Prueba Envio Corto 4 Prueba Envio Corto 4";
+
 
 Start_TAGS stags;
 End_TAGS etags;
+
+char *GETResponse = "HTTP/1.1 200 OK..Date: Mon, 25 Sep 2017 10:44:48 GMT..Server: Apache..X-Powered-By: PHP/5.2.17..Content-Length: 319..Content-Type: text/xml..Content-Language: es....<?xml version='1.0' encoding='utf-8'?>.<horfeus>.<aulas>.<IP>10.5.6.186</IP>.<resultado>.<dispositivo>293</dispositivo>.<lista>.<aula>.<codigo>RM100A2</codigo>.<edificio>44</edificio>.<tipo>5</tipo>.<nombre>AULA DE INFORMATICA PEQUEÃ.A (FISICA) (FACULTAD DE FISICA)</nombre></aula></lista></resultado></aulas></horfeus>";
+char *RegisterResponse = "HTTP/1.1 200 OK..Date: Mon, 25 Sep 2017 10:44:48 GMT..Server: Apache..X-Powered-By: PHP/5.2.17..Content-Length: 319..Content-Type: text/xml..Content-Language: es....<?xml version='1.0' encoding='utf-8'?>.<horfeus>.<firma>.<IP>10.5.6.186</IP>.<TipoCliente>4</TipoCliente>.<tiempo>26/09/2017 17:10:00</tiempo>.<edificio>43</edificio>.<TipoAula>4</TipoAula>.<aula>RM120022</aula>.<serie>00394492</serie>.<resultado>.<registro>102982</registro>.<tiempoServidor>26/09/2017 17:15:00</tiempoServidor>.<documento>53595578</documento>.<nombre>D. DOMINGOMARTIN MARQUEZ</nombre></resultado></firma></horfeus>";
 /* USER CODE END 0 */
+//char *GETresponse = " Hola <horfeus>";
 
 
 
@@ -138,6 +153,8 @@ int main(void)
 	//Fill HTTP messages tags
 	FillTags();
 
+	//statusDecode = decode(GETResponse);
+	//statusDecode = decode(RegisterResponse);
 	//Fill NTP packet message
 	memset(NTPpacket, 0, NTP_PACKET_SIZE);
 	NTPpacket[0]= 0b11100011; NTPpacket[1]= 0; NTPpacket[2]= 6; NTPpacket[3]= 0xEC;
@@ -171,6 +188,7 @@ int main(void)
   }
   MX_TIM6_Init();
   MX_TIM7_Init();
+  HAL_TIM_Base_Start_IT(&htim7); //Activate IRQ for Timer7
   MX_USART1_UART_Init();
 #ifndef SOFTWARE_EMULATED
   MX_SPI1_Init();
@@ -183,390 +201,107 @@ int main(void)
   MFRC522_Init();
 #endif
 
-  /*Initialize, Set LCD Display config  and show status message*/
-  LCD_Init();
-  LCD_Write_mifare_info(4);
+	/*Initialize, Set LCD Display config  and show status message*/
+	LCD_Init();
+	LCD_Write_mifare_info(Initialization);
 
-
-  while (1) /// Another way to take data from RFID using RFID_Read_Memory_Block();
-  {
-
-	  while ((RFID_Read_Memory_Block(63,62, bufferRFID))==MI_ERR);  // wait for detecting card.
-	  LCD_Display_Update();
-	  LCD_SetCursor(10,23);
-	  LCD_Write_String(bufferRFID);
-	  HAL_Delay(1000);
-	  LCD_Write_mifare_info(2);
-
-
-
-  }
-
-
-  if(0){
-
-  while (1) // To check with real card.
-    {
-	  if (selectCard(1)) /// Check+Anticoll+Selecting process
-	  {
-
-
-	              /// Authentication process
-	              statusRFID = MFRC522_Auth(PICC_AUTHENT1A, 63, defaultKeyA, serNum); //auth with default key
-	              if (statusRFID == MI_OK)
-	              {
-	                   statusRFID = MFRC522_Read(62, bufferRFID);
-	                   if (statusRFID == MI_OK)
-	                   {
-	                	   LCD_Display_Update();
-	                	   LCD_SetCursor(10,23);
-	                	   LCD_Write_String(bufferRFID);
-	                	   HAL_Delay(1000);
-	                	   LCD_Write_mifare_info(2);
-	                	   StopCrypto1();
-	                   }
-	              }
-
-       }
-    }
-  }
+	strcpy(Context.ClientType, "4");
 
    /* USER CODE BEGIN 2 */
 
-  HAL_Delay(10000); //Delay 10secs until WIFI device start
+	HAL_Delay(8000); //Delay 10secs until WIFI device start
 
-  /*NTP Synchronization*/
-  //Device must connect to NTP server to get datetime.
-  //while (NTP_Sync_state != 0)
-//	NTP_Sync_state = NTP_Sync();
- // if (NTP_Sync_state == 0) LCD_Write_mifare_info(5); //Debug: NTP OK*/
+	//Get stored device configuration (IP device and IP_server) and save them in Context
+	TCP_Status = TCP_Get_Config (UART0_to_ETH, &huart1, RETRIES, TIMEOUT_TX, TIMEOUT_RX, messageRX);
 
-  //HAL_Delay(10000); //Delay 10secs until WIFI restart
-  CleanBufferReception(); //Clean buffer reception
+	//Update FLASH with actual Context parameters
+	MIC_Flash_Memory_Write((const uint8_t *) &Context, sizeof(Context));
 
-  //Get device config parameters and Update Flash & Context
- TCP_Status = TCP_Get_Config (0, &huart1, 2, 100, 500, messageRX);
+	/*NTP Synchronization*/
+	//Device must connect to NTP server to get datetime.
+	while (NTP_Sync_state != 0)
+	  NTP_Sync_state = NTP_Sync();
+	if (NTP_Sync_state == 0) LCD_Write_mifare_info(6); //Debug: NTP OK*/
 
-  //Update FLASH with actual Context parameters
-  MIC_Flash_Memory_Write((const uint8_t *) &Context, sizeof(Context));
-  //MIC_Flash_Memory_Read((const uint8_t *) &Context, sizeof(Context));
+	CleanBufferReception(); //Clean buffer reception
 
-  //Now, the device should connect to TCP_Server_Domain
-  TCP_Status = TCP_Connect(0, 0,  &huart1, 2, 100, 500, messageRX);
-  HAL_Delay(10000);
-  //Build the message to send in GET request
+	//Now, the device should connect to TCP_Server_Domain
+	TCP_Status = TCP_Connect(UART0_to_ETH, TCP,  &huart1, RETRIES, TIMEOUT_TX , TIMEOUT_RX, messageRX); //Call to HKconnect Working Mode 0 0 (UART -ETH TCP 100ms Txout)
+	HAL_Delay(TIMEDELAY_RESET); //Wait for WIFI restart
+	//TCP_Status = TCP_Get_Config (UART0_to_ETH, &huart1, RETRIES, TIMEOUT_TX, TIMEOUT_RX, messageRX); // Ask for stored IP
 
- char *XMLarray = Encode_XML(0, Context); //Testing
+	LCD_Write_mifare_info(Testing);
+	//Update FLASH with actual Context parameters
+	MIC_Flash_Memory_Write((const uint8_t *) &Context, sizeof(Context));
 
-  char *HTTP_msg = Build_HTTP_msg(XMLarray, 0); //Testing
+	//Build the payload to send in GET synchronization request
+	XMLarray = Encode_Payload(GET, Context);
+	//Build HTTP message (Headers + Payload)
+	HTTP_msg = Build_HTTP_msg(GET, XMLarray);
+	//Send HTTP frame
+	RequestStatus = HTTP_request2(HTTP_msg);
 
-  statusInitialization = HTTP_request(HTTP_msg); //Testing
+	if (RequestStatus == 1) LCD_Write_mifare_info(Normal);
+	HAL_Delay(1000);
 
-  //char *XMLarray = Encode_XML(1, Context); //Testing
-
- //   char *HTTP_msg = Build_HTTP_msg(XMLarray, 1); //Testing
-
-  //  statusInitialization = HTTP_request(HTTP_msg); //Testing
-  //statusInitialization = 1;
-
-  if (statusInitialization == 1) LCD_Write_mifare_info(Normal);
-
+	LCD_Write_mifare_info(Testing);
 
 
-     if (0) /// Testing getting data. This code part should be included when some RFID card is detected
-     {
-    	 MIC_UART_Get_Data(&huart1, &data, 1);
-		MIC_Set_Digital_Output_status(2,0);
-		HAL_Delay(1000);
-		MIC_Set_Digital_Output_status(2,1);
-		HAL_Delay(1000);
-		sendingATCommands(&huart1, 100, 500,14, (uint8_t *)"at+SAtMode0=0\r\n", messageRX);
-		CleanBufferReception();
-		//while(1)
-		while(BufferReceptionCounter == 0)
+	/* USER CODE END 2 */
+
+	/* Infinite loop */
+	/* USER CODE BEGIN WHILE */
+	while (1)
+	{
+	/* USER CODE END WHILE */
+
+	  /*Reading MIFARE card: block 3, sector 16, key FFFFFFFFFFFF*/
+		while ((RFID_Read_Memory_Block(BLOCKTRAIL_RFID, BLOCKREAD_RFID, bufferRFID))==MI_ERR);  // wait for detecting card.
+
+		//When card is detected, short beep once
+		Buzzer_Control(short_beep_1);
+		LCD_Write_mifare_info(Reading);
+		Blink_LED_Status(Reading);
+
+		memcpy(Context.Serie, (const char*)bufferRFID,6);
+		//HAL_Delay(1000);
+
+		char *XMLpost = Encode_Payload(POST, Context); //Mount POST Payload
+
+		char *HTTP_msg_post = Build_HTTP_msg(POST, XMLpost); //Build HTTP Frame with previous payload
+
+		LCD_Write_mifare_info(Registering);
+
+		RequestStatus = HTTP_request2(HTTP_msg_post); //Was repeated
+		if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
+		HAL_Delay(500);
+		//LCD_Write_mifare_info(5);
+		//RequestStatus = 1;
+		//if Register is OK
+		if(RequestStatus == 1)
 		{
-			/*HAL_Delay(500);
-			MIC_UART_Get_Data(&huart1, &data, 1);
-			MIC_Set_Digital_Output_status(2,0);
-			HAL_Delay(1000);
-			MIC_Set_Digital_Output_status(2,1);
-			HAL_Delay(1000);
-			sendingATCommands(&huart1, 100, 500,14, (uint8_t *)"at+SAtMode0=0\r\n", messageRX);*/
-			//MIC_UART_Send_Data(&huart1,(uint8_t*)POST_frame,132,100);
-			MIC_UART_Send_Data(&huart1,(uint8_t*)"GET HTTP/1.1\r\nHost: 192.168.1.160\r\n\r\n",37,100);
-			//MIC_UART_Send_Data(&huart1,(uint8_t*)"GET /es/use.html HTTP/1.1\r\nHost: pool.ntp.org\r\n\r\n",49,100);
-			//MIC_UART_Send_Data(&huart1,(uint8_t*)&packet,48,100);
-			//MIC_UART_Send_Data(&huart1,(uint8_t*)&NTPpacket,48,100);
-			//CleanBufferReception();
-			//MIC_UART_Send_Data(&huart1,(uint8_t*)&GET_msgstring,strlen(GET_msgstring),100);
-
-			HAL_Delay(500);
-			//while (BufferReceptionCounter < 50)
-			//		;
-			if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
-			if (BufferReceptionCounter>0)
-			{
-				HAL_Delay(4000);
-
-				//Get_NTP_Time(bufferReception);
-				//HAL_Delay(100);
-				//CleanBufferReception();
-
-			}
-			if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
+			RequestStatus = 0;
+			Blink_LED_Status(Registered);
+			LCD_Write_mifare_info(Registered);
+			//LCD_Write_mifare_info(RTC_display);
+			Buzzer_Control(short_beep_2);
 		}
+		else
+		{
+			LCD_Write_mifare_info(Not_Registered);
+			Buzzer_Control(long_beep);
+		}
+
+		HAL_Delay(1500);
+		LCD_Write_mifare_info(Testing);
+		//LCD_Write_mifare_info(RTC_display);
+		//HAL_Delay(900);
 	}
-
-
-      /* USER CODE END 2 */
-
-     /* Infinite loop */
-     /* USER CODE BEGIN WHILE */
-     while (1)
-    {
-     /* USER CODE END WHILE */
-
-   	  	  /*Reading MIFARE card: block 3, sector 16, key FFFFFFFFFFFF*/
-   	  	  //RFID_Read_Memory_Block();
-    	 if (selectCard(1)) /// Check+Anticoll+Selecting process
-		  {
-			  /// Authentication process
-			  statusRFID = MFRC522_Auth(PICC_AUTHENT1A, 63, defaultKeyA, serNum); //auth with default key
-			  if (statusRFID == MI_OK)
-			  {
-				   statusRFID = MFRC522_Read(62, bufferRFID);
-				   if (statusRFID == MI_OK)
-				   {
-					   LCD_Write_mifare_info(0);
-					   HAL_Delay(1000);
-					   LCD_Display_Update();
-					   LCD_SetCursor(10,23);
-					   LCD_Write_String(bufferRFID);
-					   strcpy(Context.Serie, bufferRFID);
-
-					   char *XMLpost = Encode_XML(1, Context); //Testing
-
-					   char *HTTP_msg_post = Build_HTTP_msg(XMLpost, 1); //Testing
-
-					   statusInitialization = HTTP_request(HTTP_msg_post); //Testing
-					     //statusInitialization = 1;
-
-				   }
-			  }
-			}
-   	  	  // if(RFID_OK)
-   		  //{
-   	  	  	  /*Beep & Update LCD*/
-   	  	  	  //Blink_LED_Status(Reading);
-   	  	  	  //Buzzer_Control();
-
-   	  	  	  /*Create the HTTP message, connect to HTTP server and send HTTP msg*/
-   	  	  	  //TCP_IP_Connect();
-   	  	  	  //TCP_Send_Data();
-
-   	  	  	  /*Wait for server response until timeout*/
-   	  	  	  // if(response_OK)
-   	  	  	  //{
-   	  	  	  	  /*Beep & Update LCD*/
-   	  	  	  	  //Blink_LED_Status(Reading);
-   	  	  	  	  //Buzzer_Control();
-   	  	  	  // else (response_NOK)
-   	  	  	  // {
-   				  	  /*Beep & Update LCD*/
-   	  	  	  	  	  //Blink_LED_Status(Reading);
-   	  	  	  	  	  //Buzzer_Control();
-   	  	  	  // }
-   	  	  //}
-   	  	  //else (RFID_NOK)
-   	  	  //{
-   	  	  	  	  /*Beep & Update LCD*/
-   				  //Blink_LED_Status(Reading);
-   				  //Buzzer_Control();
-   	  	  //}
-   	  //}
-   	  // else (flag_interrupt != 1)
-   	  //{
-   	  	  	  /*Update LCD Display*/
-   		  	  //LCD_Write_mifare_info();
-   	  //}
-
-   	  //LED_STATUS pin test
-   	  //HAL_UART_Transmit(&huart5,(const char*)"Testing RM08S module\r\n",22,100);
-   	 //HAL_UART_Transmit(&huart1,(uint8_t*)"at+Netmode=1\r",13,100);
-   	 // HAL_UART_Transmit(&huart1,(uint8_t*)"at+Save=1\r\n",11,100);
-   	  //HAL_UART_Transmit(&huart1,(uint8_t*)"at+Apply=1\r\n",12,100);
-   	 // HAL_UART_Transmit(&huart1,(uint8_t*)"at+Reboot=1\r\n",13,100);
-
-
-
-
-     /* USER CODE BEGIN 3 */
-
-     }
-     /* USER CODE END 3 */
-
-   }
-
-/** System Clock Configuration
-*/
-//13MHz
-#ifdef CLOCK_13MHZ
-void SystemClock_Config(void)
-{
-
-  RCC_OscInitTypeDef RCC_OscInitStruct;
-  RCC_ClkInitTypeDef RCC_ClkInitStruct;
-  RCC_PeriphCLKInitTypeDef PeriphClkInit;
-
-
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSE;
-  //RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV2;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_I2C1;
-  PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK1;
-  PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_SYSCLK;
-  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-
-  HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
-
-
-  HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
-
-
-  HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 }
-*/
-#endif
-/** System Clock Configuration
-*/
-
-#ifdef CLOCK_48MHZ
-void SystemClock_Config(void)
-{
-
-  RCC_OscInitTypeDef RCC_OscInitStruct;
-  RCC_ClkInitTypeDef RCC_ClkInitStruct;
-  RCC_PeriphCLKInitTypeDef PeriphClkInit;
-
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
-  RCC_OscInitStruct.PLL.PREDIV = RCC_PREDIV_DIV5;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
 
 
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_I2C1;
-  PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK1;
-  PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_SYSCLK;
-  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
 
 
-  HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
-
-
-  HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
-
-
-  HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
-}
-#endif
-//26MHZ
-#ifdef CLOCK_26MHZ
-void SystemClock_Config(void)
-{
-
-  RCC_OscInitTypeDef RCC_OscInitStruct;
-  RCC_ClkInitTypeDef RCC_ClkInitStruct;
-  RCC_PeriphCLKInitTypeDef PeriphClkInit;
-
-
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSE;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_RTC;
-    PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSI;
-    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
-    {
-      _Error_Handler(__FILE__, __LINE__);
-    }
- if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-
-  HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
-
-
-  HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
-
-
-  HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
-}
-#endif
 
 #ifdef CLOCK_26MHZ_APB113MHZ
 /// All to 26MHz APB1 to 13MHz
@@ -592,7 +327,8 @@ void SystemClock_Config(void)
                               |RCC_CLOCKTYPE_PCLK1;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSE;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+  //RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
   {
@@ -613,122 +349,13 @@ void SystemClock_Config(void)
 
   HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
 
-
   HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
-
 
   HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
 }
 #endif
 
-#ifdef CLOCK_32MHZAPB116MHZ
 
-/// all 32Mhz, and APB1 to 16MHz
-void SystemClock_Config(void)
-{
-
-  RCC_OscInitTypeDef RCC_OscInitStruct;
-  RCC_ClkInitTypeDef RCC_ClkInitStruct;
-  RCC_PeriphCLKInitTypeDef PeriphClkInit;
-
-
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL5;
-  RCC_OscInitStruct.PLL.PREDIV = RCC_PREDIV_DIV4;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
-
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_I2C1;
-  PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK1;
-  PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_SYSCLK;
-  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-
-  HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
-
-
-  HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
-
-
-  HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
-}
-#endif
-
-//39MHz
-#ifdef CLOCK_29MHZ
-void SystemClock_Config(void)
-{
-
-  RCC_OscInitTypeDef RCC_OscInitStruct;
-  RCC_ClkInitTypeDef RCC_ClkInitStruct;
-  RCC_PeriphCLKInitTypeDef PeriphClkInit;
-
-
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL3;
-  RCC_OscInitStruct.PLL.PREDIV = RCC_PREDIV_DIV2;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_I2C1;
-  PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK1;
-  PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_SYSCLK;
-  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-
-  HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
-
-
-  HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
-
-
-  HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
-}
-#endif
 
 /* I2C1 init function */
 static void MX_I2C1_Init(void)
@@ -799,15 +426,15 @@ static void MX_TIM6_Init(void)
 static void MX_TIM7_Init(void)
 {
 
-  htim7.Instance = TIM7;
-  htim7.Init.Prescaler = 33474;
-  htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim7.Init.Period = 25000;
-  htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim7) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
+  	htim7.Instance = TIM7;
+	htim7.Init.Prescaler = (SystemCoreClock/1000)-1;
+	htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
+	htim7.Init.Period = 1000; //100ms
+	htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+	if (HAL_TIM_Base_Init(&htim7) != HAL_OK)
+	{
+	_Error_Handler(__FILE__, __LINE__);
+	}
 
 }
 
@@ -833,12 +460,6 @@ static void MX_SPI1_Init(void)
 	  {
 	    _Error_Handler(__FILE__, __LINE__);
 	  }
-
-
-
-
-
-
 }
 
 /* USART1 init function */
@@ -847,6 +468,7 @@ static void MX_USART1_UART_Init(void)
 
   huart1.Instance = USART1;
   huart1.Init.BaudRate = 115200;
+  //huart1.Init.BaudRate = 57600;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
@@ -863,26 +485,7 @@ static void MX_USART1_UART_Init(void)
 }
 
 
-/* USART5 init function */
-static void MX_USART5_UART_Init(void)
-{
 
-  huart5.Instance = USART5;
-  huart5.Init.BaudRate = 9600;
-  huart5.Init.WordLength = UART_WORDLENGTH_8B;
-  huart5.Init.StopBits = UART_STOPBITS_1;
-  huart5.Init.Parity = UART_PARITY_NONE;
-  huart5.Init.Mode = UART_MODE_TX_RX;
-  huart5.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart5.Init.OverSampling = UART_OVERSAMPLING_16;
-  huart5.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  huart5.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_UART_Init(&huart5) != HAL_OK)
-  {
-    _Error_Handler(__FILE__, __LINE__);
-  }
-
-}
 /** Configure pins as 
         * Analog 
         * Input 
@@ -903,7 +506,7 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(ES0_GPIO_Port, ES0_Pin, GPIO_PIN_SET);
-  //HAL_GPIO_WritePin(ES1_GPIO_Port, ES1_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(LED_STATUS_GPIO_Port, LED_STATUS_Pin, GPIO_PIN_SET);
 
   //HAL_GPIO_WritePin(LED_STATUS_GPIO_Port, LED_STATUS_Pin, GPIO_PIN_SET);
   /*Configure GPIO pin : CSS_Pin */
@@ -936,12 +539,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : GPIOX13_Pin */
-    //GPIO_InitStruct.Pin = LED_STATUS_Pin;
-    //GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    //GPIO_InitStruct.Pull = GPIO_NOPULL;
-    //GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-    //HAL_GPIO_Init(LED_STATUS_GPIO_Port, &GPIO_InitStruct);
+  /*Configure GPIO pin : LED_STATUS_Pin */
+    GPIO_InitStruct.Pin = LED_STATUS_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    HAL_GPIO_Init(LED_STATUS_GPIO_Port, &GPIO_InitStruct);
 
     /*Configure GPIO pin : GPIOX13_Pin */
 	/*GPIO_InitStruct.Pin = PORST_Pin | PERST_Pin;
@@ -978,9 +581,9 @@ void MX_RTC_Init(void)
 
   //HAL_RTC_Init(&hrtc);
 
-   /*sTime.Hours = 0x11;
+   sTime.Hours = 0x11;
    sTime.Minutes = 0x0;
-   sTime.Seconds = 0x0;*/
+   sTime.Seconds = 0x0;
    sTime.TimeFormat = RTC_HOURFORMAT12_AM;
    sTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
    sTime.StoreOperation = RTC_STOREOPERATION_RESET;
@@ -990,10 +593,10 @@ void MX_RTC_Init(void)
 	   _Error_Handler(__FILE__, __LINE__);
    }
 
-   /*sDate.WeekDay = RTC_WEEKDAY_MONDAY;
+   sDate.WeekDay = RTC_WEEKDAY_MONDAY;
    sDate.Month = RTC_MONTH_JANUARY;
    sDate.Date = 0x1;
-   sDate.Year = 0x0;*/
+   sDate.Year = 0x0;
    if(HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN) != HAL_OK)
       {
 	   _Error_Handler(__FILE__, __LINE__);
@@ -1024,22 +627,15 @@ void MX_RTC_Init(void)
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-
+	Disable_All_INT();
   if (huart->Instance==WIFI_UART_HANDLE.Instance)
  {
 
-	  //USART_ClearITPendingBit(USARTx, USART_IT_TC);
-	  //	USART_ClearITPendingBit(USARTx, USART_IT_RXNE);
-	  //UartRFID =1;
-
-	 bufferReception[BufferReceptionCounter]=data;
-	 BufferReceptionCounter=((BufferReceptionCounter+1)%SIZE_BUFFER_RECEPTION);
+	bufferReception[BufferReceptionCounter]=data;
+	BufferReceptionCounter=((BufferReceptionCounter+1)%SIZE_BUFFER_RECEPTION);
 	HAL_UART_Receive_IT(huart,&data,1);
-
-	 //packet[BufferReceptionCounter]=data;
-	// 	 BufferReceptionCounter=((BufferReceptionCounter+1)%48);
-	 //	 HAL_UART_Receive_IT(huart,&data,1);
   }
+  Enable_All_INT();
 
 }
 /* USER CODE BEGIN 4 */
@@ -1065,6 +661,34 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 		huart->RxState = HAL_UART_STATE_BUSY_RX;
 	}
 }
+
+void Disable_All_INT(void)
+{
+   HAL_NVIC_DisableIRQ(TIM7_IRQn); // Disable Timer7
+}
+
+void Enable_All_INT(void)
+{
+   HAL_NVIC_EnableIRQ(TIM7_IRQn); // Enable Timer7
+}
+
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	//Disable_All_INT();
+
+	if (htim->Instance==TIM7)
+	{
+		elapsed10seconds++;
+
+		if (elapsed10seconds%TIMING_TIMEOUT_UART==0)
+		{
+			timeoutUART=1;
+		}
+	}
+	//Enable_All_INT();
+}
+
 /* USER CODE END 4 */
 
 /**
