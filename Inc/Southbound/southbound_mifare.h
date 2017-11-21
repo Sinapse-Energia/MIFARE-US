@@ -31,7 +31,8 @@ typedef struct{
 	char Time_server[20];
 	char Building[20];
 	char Classroom_Type[5];
-	char Classroom[10];
+	char Classroom_code[15];
+	char Classroom_name[15];
 	char Serie[8];
 
 }Memory_Context;
@@ -125,7 +126,7 @@ void LCD_SetCursor(uint8_t x, uint8_t y);
 void LCD_Write_mifare_info(Device_Status status);
 void LCD_Write_String(char *string, FontDef sizefont);
 void FillTags();
-
+void RTC_Save();
 
 
 void Buzzer_Control(Buzzer_tone tone);
@@ -134,8 +135,6 @@ void Blink_LED_Status(Device_Status status);
 char *Encode_Payload(HTTP_METHOD method, Memory_Context context);
 
 void CleanBufferReception(void);
-
-
 
 uint8_t decodeServerResponse(char *bufferdecode);
 

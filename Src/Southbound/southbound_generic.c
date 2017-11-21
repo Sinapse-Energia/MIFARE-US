@@ -17,6 +17,7 @@
 #include "stdio.h"
 #include "tm_stm32f4_mfrc522.h"
 
+/* Global variables */
 extern struct _spiControl spiControl;
 
 extern char *IP_Device;
@@ -37,6 +38,7 @@ extern NTPStatus NTP_Status;
 extern 	HAL_StatusTypeDef UARTStatus;
 extern unsigned char NTPpacket[NTP_PACKET_SIZE];
 extern char NTPbuffer[20];
+extern uint8_t NTP_Sync_state;
 extern unsigned int elapsed10seconds;
 
 extern RTC_HandleTypeDef hrtc;
@@ -53,8 +55,13 @@ extern unsigned char serNum7[8];
 extern unsigned char defaultKeyA[16];
 extern unsigned char madKeyA[16];
 extern unsigned char NDEFKeyA[16];
-///////////////////////////////////////////////////////////////////////////////////////
-/* Internal FLASH memory functions */
+
+/**
+ * @Description: This function write data in FLASH Memory.
+ * 				 Receive as parameter:
+ * 				 - const uint8_t *data_in: data to write. It must be a struct data
+ * 				 - uint32_t size: size of data to write.
+ */
 int MIC_Flash_Memory_Write(const uint8_t *data_in, uint32_t size)
 {
 	HAL_StatusTypeDef status = HAL_ERROR;
@@ -572,9 +579,9 @@ HKStatus HK_Get_Config(HK_Working_Mode mode, UART_HandleTypeDef *phuart1, uint32
 		case UART0_to_ETH:
 
 			//Select UART0 to send AT messages
-			MIC_Set_Digital_Output_status(2,0);
+			MIC_Set_Digital_Output_status(ES0_UART0,0);
 			HAL_Delay(1000);
-			MIC_Set_Digital_Output_status(2,1);
+			MIC_Set_Digital_Output_status(ES0_UART0,1);
 			HAL_Delay(1000);
 
 			//Read the static IP address of the WAN Port
@@ -1001,7 +1008,7 @@ uint8_t NTP_Sync(void)
 			MIC_UART_Send_Data(&huart1,(uint8_t*)&NTPpacket,NTP_PACKET_SIZE, TIMEOUT_TX);
 			HAL_Delay(1000);
 		}
-		if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
+		//if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
 
 		if (BufferReceptionCounter >= 48)
 		{
@@ -1029,7 +1036,7 @@ void Get_NTP_Time(char *buffer)
 	NTP_result = NTP_timestampUnix - NTP_SEVENTYYEARS;
 	struct tm* NTP_time = gmtime((const time_t *)&NTP_result);
 
-	strftime(NTPbuffer,20,"%d/%m/%Y %X", NTP_time);
+	//strftime(NTPbuffer,20,"%d/%m/%Y-%X", NTP_time);
 
 	structTimeRTC.Hours = NTP_time->tm_hour;
 	structTimeRTC.Minutes = NTP_time->tm_min;
@@ -1046,7 +1053,8 @@ void Get_NTP_Time(char *buffer)
 	//Set internal RTC
 	MIC_Set_RTC (&hrtc, &structTimeRTC, &structDateRTC, RTC_FORMAT_BIN);
 
-	strcpy(Context.Time_server, (const char *)NTPbuffer);
+	//strcpy(Context.Time_server, (const char *)NTPbuffer);
+	if (NTP_Sync_state == 0) RTC_Save();
 	//Update context in Flash
 	MIC_Flash_Memory_Write((const uint8_t *) &Context, sizeof(Context));
 
@@ -1102,104 +1110,44 @@ char *Build_HTTP_msg(HTTP_METHOD method, char *Payload)
 }
 
 
-uint8_t HTTP_request1(char *HTTPbuffer)
-{
-	uint8_t decodeStatus = 0;
-	uint8_t retries = 0;
-	extern char *GETResponse;
-	char *mensaje = malloc(strlen(HTTPbuffer));
-	strcpy(mensaje, HTTPbuffer);
-
-	//CleanBufferReception();
-	//Select UART0 interface to send message
-	MIC_Set_Digital_Output_status(2,0);
-	HAL_Delay(1000);
-	MIC_Set_Digital_Output_status(2,1);
-	HAL_Delay(1000);
-
-	//HERE SET AT TRANSPARENTMODE. THIS SHOULD BE CALLED FROM HERE NOT HARCODED
-
-	if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
-	sendingATCommands(&huart1, 100, 500,14, (uint8_t *)"at+SAtMode0=0\r\n", messageRX);
-	//SET TRANSPARENT MODE
-	HAL_Delay(1000); //WAIT FOR CHANGE MODE
-	CleanBufferReception();
-
-	//if(1) //Testing
-	while(BufferReceptionCounter <300 && retries < 5 )
-	{
-		retries++;
-		HAL_Delay(1000);
-		//Active interruption
-		MIC_UART_Get_Data(&huart1, &data, 1);
-
-		//Send message trhough UART , Leng: Leng of mensaje , Parameter 100 Tout TX
-
-		MIC_UART_Send_Data(&huart1,(uint8_t*)mensaje,strlen(mensaje),100); //Tout was in 100
-
-		//HAL_Delay(700);
-		if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
-
-		if (BufferReceptionCounter >0)
-		//if (1)
-
-			//if (BufferReceptionCounter > 0 )
-		{
-			//CleanBufferReception();
-			//decodeStatus = decodeXML(GETResponse);
-			decodeStatus = decodeServerResponse(bufferReception);
-			//free(mensaje);
-			//HAL_Delay(4000);
-			//INTERPRETAR RESPUESTA DEL SERVIDOR
-
-		}
-		if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
-
-	}
-	free(mensaje);
-	CleanBufferReception();
-
-	if(decodeStatus == 3 || decodeStatus == 1)	return 1;
-	else return 0;
-}
-
  uint8_t HTTP_request(char *HTTPbuffer)
 {
 	uint8_t decodeStatus = 0;
-	extern char *RegisterResponse;
-
 	char *mensaje = malloc(strlen(HTTPbuffer));
 	strcpy(mensaje, HTTPbuffer);
-	uint16_t lengthOfmessage = 0;
 	timeoutUART = 0;
 	elapsed10seconds=0;
-
+	char testarray[20];
+	char temporal[3];
 
 	//Select UART0 interface to send message
-	MIC_Set_Digital_Output_status(2,0);
+	MIC_Set_Digital_Output_status(ES0_UART0,0);
 	HAL_Delay(500);
-	MIC_Set_Digital_Output_status(2,1);
+	MIC_Set_Digital_Output_status(ES0_UART0,1);
 	HAL_Delay(500);
-	if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
-	sendingATCommands(&huart1,100, 500,14, (uint8_t *)"at+SAtMode0=0\r\n", messageRX);
+	//if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
+	sendingATCommands(&huart1,TIMEOUT_TX, TIMEOUT_RX,14, (uint8_t *)"at+SAtMode0=0\r\n", messageRX);
 	//HAL_Delay(10000);
 	CleanBufferReception();
 
 	UARTStatus = MIC_UART_Get_Data(&huart1, &data, 1); //IRQ active
-	UARTStatus = MIC_UART_Send_Data(&huart1, mensaje, strlen(mensaje),100);
-
+	//strcpy(testarray, itoa(strlen(mensaje), temporal,10));
+	//LCD_Display_Update();
+	//LCD_SetCursor(25,25);
+	//LCD_Write_String(testarray, Font_11x18);
+	UARTStatus = MIC_UART_Send_Data(&huart1, mensaje, strlen(mensaje),TIMEOUT_TX);
 
 	while ((BufferReceptionCounter <MAX_BUFFERRECEPTION_SIZE)
 				& (timeoutUART == 0))
 			;
-	if((BufferReceptionCounter == MIN_BUFFERRECEPTION_SIZE) | (BufferReceptionCounter == MAX_BUFFERRECEPTION_SIZE) )
+	if((BufferReceptionCounter >= MIN_BUFFERRECEPTION_SIZE) && (BufferReceptionCounter <= MAX_BUFFERRECEPTION_SIZE) )
 	{
 		decodeStatus = decodeServerResponse(bufferReception);
 	}
 	free(mensaje);
 	CleanBufferReception();
 
-	if(decodeStatus == 3 || decodeStatus == 1)	return 1;
+	if(decodeStatus == 4 || decodeStatus == 2)	return 1;
 	else return 0;
 }
 
@@ -1471,6 +1419,10 @@ int RFID_Read_Memory_Block(int blockTrail, int blockRead, unsigned char *buffer)
 
 	 if (WDT_ENABLED == 1)	HAL_IWDG_Refresh(&hiwdg);
 
+	 MIC_Get_RTC (&hrtc, &structTimeRTC, &structDateRTC, RTC_FORMAT_BIN);
+
+	 if ((structTimeRTC.Hours == 1) && (structTimeRTC.Minutes == 30))
+		 NVIC_SystemReset();
 	  if (selectCard(1))
 	    {
 

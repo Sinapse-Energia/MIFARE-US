@@ -19,8 +19,8 @@ extern "C" {
 #include "tm_stm32f4_mfrc522.h"
 
 extern UART_HandleTypeDef huart1;
-extern char messageRX[SIZE_BUFFER_RECEPTION];
-extern char bufferReception[SIZE_BUFFER_RECEPTION];
+extern char messageRX[BUFFER_RECEPTION_SIZE];
+extern char bufferReception[BUFFER_RECEPTION_SIZE];
 extern uint8_t  data;
 extern uint16_t BufferReceptionCounter;
 extern IWDG_HandleTypeDef hiwdg;
@@ -113,7 +113,6 @@ void Get_NTP_Time(char *buffer);
 uint8_t NTP_Sync(void);
 char *Build_HTTP_msg(HTTP_METHOD method, char *Payload);
 
-uint8_t HTTP_request1(char *HTTPbuffer);
 uint8_t HTTP_request(char *HTTPbuffer);
 //***********************************************************************************************************
 // DESCRIPTION: Functions that Set & Get internal RTC time and date. This function receive as parameters

@@ -108,15 +108,15 @@ static void MX_USART1_UART_Init(void);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
-uint8_t WDT_ENABLED=0;
+uint8_t WDT_ENABLED=1;
 uint8_t i = 0;
 
 uint8_t UartRFID = 0;
 uint8_t addressRFID,dataRFID;
-char bufferReception[SIZE_BUFFER_RECEPTION];
+char bufferReception[BUFFER_RECEPTION_SIZE];
 uint8_t  data = 0;
 uint16_t BufferReceptionCounter = 0;
-char messageRX[SIZE_BUFFER_RECEPTION];
+char messageRX[BUFFER_RECEPTION_SIZE];
 uint8_t timeoutUART = 0;
 unsigned int elapsed10seconds=0;
 HKStatus HK_Status;
@@ -131,16 +131,18 @@ char dataReceived[8];
 unsigned char RFID_KEY[6]= {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
 unsigned char NTPpacket[NTP_PACKET_SIZE];
 char NTPbuffer[NTP_TIME_SIZE];
+uint8_t ntp_retries = 0;
 char *XMLarray = NULL;
 char *HTTP_msg = NULL;
 //char *test = "Prueba Envio Corto 1 Prueba Envio Corto 2 Prueba Envio Corto 3 Prueba Envio Corto 4 Prueba Envio Corto 1 Prueba Envio Corto 2 Prueba Envio Corto 3 Prueba Envio Corto 4 Prueba Envio Corto 4 Prueba Envio Corto 3 Prueba Envio Corto 4 Prueba Envio Corto 4 Prueba Envio Corto 4 Prueba Envio Corto 1 Prueba Envio Corto 2 Prueba Envio Corto 3 Prueba Envio Corto 4 Prueba Envio Corto 4 Prueba Envio Corto 3 Prueba Envio Corto 4 Prueba Envio Corto 4";
 
-
+char erasespace[1]= " ";
+char *RFIDarray=NULL;
 Start_TAGS stags;
 End_TAGS etags;
 
-char *GETResponse = "HTTP/1.1 200 OK..Date: Mon, 25 Sep 2017 10:44:48 GMT..Server: Apache..X-Powered-By: PHP/5.2.17..Content-Length: 319..Content-Type: text/xml..Content-Language: es....<?xml version='1.0' encoding='utf-8'?>.<horfeus>.<aulas>.<IP>10.5.6.186</IP>.<resultado>.<dispositivo>293</dispositivo>.<lista>.<aula>.<codigo>RM100A2</codigo>.<edificio>44</edificio>.<tipo>5</tipo>.<nombre>AULA DE INFORMATICA PEQUEÃ.A (FISICA) (FACULTAD DE FISICA)</nombre></aula></lista></resultado></aulas></horfeus>";
-char *RegisterResponse = "HTTP/1.1 200 OK..Date: Mon, 25 Sep 2017 10:44:48 GMT..Server: Apache..X-Powered-By: PHP/5.2.17..Content-Length: 319..Content-Type: text/xml..Content-Language: es....<?xml version='1.0' encoding='utf-8'?>.<horfeus>.<firma>.<IP>10.5.6.186</IP>.<TipoCliente>4</TipoCliente>.<tiempo>26/09/2017 17:10:00</tiempo>.<edificio>43</edificio>.<TipoAula>4</TipoAula>.<aula>RM120022</aula>.<serie>00394492</serie>.<resultado>.<registro>102982</registro>.<tiempoServidor>26/09/2017 17:15:00</tiempoServidor>.<documento>53595578</documento>.<nombre>D. DOMINGOMARTIN MARQUEZ</nombre></resultado></firma></horfeus>";
+//char *GETResponse = "HTTP/1.1 200 OK..Date: Mon, 25 Sep 2017 10:44:48 GMT..Server: Apache..X-Powered-By: PHP/5.2.17..Content-Length: 319..Content-Type: text/xml..Content-Language: es....<?xml version='1.0' encoding='utf-8'?>.<horfeus>.<aulas>.<IP>10.5.6.186</IP>.<resultado>.<dispositivo>293</dispositivo>.<lista>.<aula>.<codigo>RM100A2</codigo>.<edificio>44</edificio>.<tipo>5</tipo>.<nombre>AULA DE INFORMATICA PEQUEÃ.A (FISICA) (FACULTAD DE FISICA)</nombre></aula></lista></resultado></aulas></horfeus>";
+//char *RegisterResponse = "HTTP/1.1 200 OK..Date: Mon, 25 Sep 2017 10:44:48 GMT..Server: Apache..X-Powered-By: PHP/5.2.17..Content-Length: 319..Content-Type: text/xml..Content-Language: es....<?xml version='1.0' encoding='utf-8'?>.<horfeus>.<firma>.<IP>10.5.6.186</IP>.<TipoCliente>4</TipoCliente>.<tiempo>26/09/2017 17:10:00</tiempo>.<edificio>43</edificio>.<TipoAula>4</TipoAula>.<aula>RM120022</aula>.<serie>00394492</serie>.<resultado>.<registro>102982</registro>.<tiempoServidor>26/09/2017 17:15:00</tiempoServidor>.<documento>53595578</documento>.<nombre>D. DOMINGOMARTIN MARQUEZ</nombre></resultado></firma></horfeus>";
 /* USER CODE END 0 */
 //char *GETresponse = " Hola <horfeus>";
 
@@ -151,6 +153,7 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
 	//Fill HTTP messages tags
+
 	FillTags();
 
 	//statusDecode = decode(GETResponse);
@@ -159,7 +162,6 @@ int main(void)
 	memset(NTPpacket, 0, NTP_PACKET_SIZE);
 	NTPpacket[0]= 0b11100011; NTPpacket[1]= 0; NTPpacket[2]= 6; NTPpacket[3]= 0xEC;
 	NTPpacket[12]= 49; NTPpacket[13]= 0x4E; NTPpacket[14]= 49; NTPpacket[15]= 52;
-
   /* MCU Configuration----------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
@@ -220,18 +222,21 @@ int main(void)
 
 	/*NTP Synchronization*/
 	//Device must connect to NTP server to get datetime.
-	while (NTP_Sync_state != 0)
-	  NTP_Sync_state = NTP_Sync();
-	if (NTP_Sync_state == 0) LCD_Write_mifare_info(6); //Debug: NTP OK*/
+	//while (NTP_Sync_state != 0 )
+	if(NTP_Sync_state != 0)
+		NTP_Sync_state = NTP_Sync();
+
+	if (NTP_Sync_state == 0) LCD_Write_mifare_info(RTC_display); //Debug: NTP OK*/
 
 	CleanBufferReception(); //Clean buffer reception
 
 	//Now, the device should connect to TCP_Server_Domain
 	TCP_Status = TCP_Connect(UART0_to_ETH, TCP,  &huart1, RETRIES, TIMEOUT_TX , TIMEOUT_RX, messageRX); //Call to HKconnect Working Mode 0 0 (UART -ETH TCP 100ms Txout)
+
 	HAL_Delay(TIMEDELAY_RESET); //Wait for WIFI restart
 	//TCP_Status = TCP_Get_Config (UART0_to_ETH, &huart1, RETRIES, TIMEOUT_TX, TIMEOUT_RX, messageRX); // Ask for stored IP
 
-	LCD_Write_mifare_info(Testing);
+	//LCD_Write_mifare_info(Testing);
 	//Update FLASH with actual Context parameters
 	MIC_Flash_Memory_Write((const uint8_t *) &Context, sizeof(Context));
 
@@ -239,8 +244,11 @@ int main(void)
 	XMLarray = Encode_Payload(GET, Context);
 	//Build HTTP message (Headers + Payload)
 	HTTP_msg = Build_HTTP_msg(GET, XMLarray);
+
+	if (WDT_ENABLED==1) HAL_IWDG_Refresh(&hiwdg);
 	//Send HTTP frame
-	RequestStatus = HTTP_request(HTTP_msg);
+	while(RequestStatus != 1)
+		RequestStatus = HTTP_request(HTTP_msg);
 
 	if (RequestStatus == 1) LCD_Write_mifare_info(Normal);
 	HAL_Delay(1000);
@@ -259,12 +267,16 @@ int main(void)
 	  /*Reading MIFARE card: block 3, sector 16, key FFFFFFFFFFFF*/
 		while ((RFID_Read_Memory_Block(BLOCKTRAIL_RFID, BLOCKREAD_RFID, bufferRFID))==MI_ERR);  // wait for detecting card.
 
+		if (NTP_Sync_state == 0) RTC_Save();
 		//When card is detected, short beep once
 		Buzzer_Control(short_beep_1);
 		LCD_Write_mifare_info(Reading);
 		Blink_LED_Status(Reading);
 
-		memcpy(Context.Serie, (const char*)bufferRFID,6);
+		RFIDarray= strtok (bufferRFID, erasespace);
+		//strcpy(Context.IP, bufferRFID);
+		//memcpy(Context.Serie, (const char*)bufferRFID, strlen(bufferRFID));
+		strcpy(Context.Serie, RFIDarray);
 		//HAL_Delay(1000);
 
 		char *XMLpost = Encode_Payload(POST, Context); //Mount POST Payload
@@ -635,9 +647,9 @@ void MX_RTC_Init(void)
 
   //HAL_RTC_Init(&hrtc);
 
-   sTime.Hours = 0x11;
-   sTime.Minutes = 0x0;
-   sTime.Seconds = 0x0;
+   sTime.Hours = 0x00;
+   sTime.Minutes = 0x00;
+   sTime.Seconds = 0x00;
    sTime.TimeFormat = RTC_HOURFORMAT12_AM;
    sTime.DayLightSaving = RTC_DAYLIGHTSAVING_NONE;
    sTime.StoreOperation = RTC_STOREOPERATION_RESET;
@@ -647,10 +659,10 @@ void MX_RTC_Init(void)
 	   _Error_Handler(__FILE__, __LINE__);
    }
 
-   sDate.WeekDay = RTC_WEEKDAY_MONDAY;
-   sDate.Month = RTC_MONTH_JANUARY;
-   sDate.Date = 0x1;
-   sDate.Year = 0x0;
+  // sDate.WeekDay = RTC_WEEKDAY_MONDAY;
+   //sDate.Month = RTC_MONTH_JANUARY;
+   //sDate.Date = 0x1;
+   //sDate.Year = 0x0;
    if(HAL_RTC_SetDate(&hrtc, &sDate, RTC_FORMAT_BIN) != HAL_OK)
       {
 	   _Error_Handler(__FILE__, __LINE__);
@@ -659,7 +671,7 @@ void MX_RTC_Init(void)
 
      /**Enable the Alarm A
      */
-   sAlarm.AlarmTime.Hours = 0x0;
+   sAlarm.AlarmTime.Hours = 0x08;
    sAlarm.AlarmTime.Minutes = 0x0;
    sAlarm.AlarmTime.Seconds = 0x0;
    sAlarm.AlarmTime.TimeFormat = RTC_HOURFORMAT12_AM;
@@ -686,7 +698,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
  {
 
 	bufferReception[BufferReceptionCounter]=data;
-	BufferReceptionCounter=((BufferReceptionCounter+1)%SIZE_BUFFER_RECEPTION);
+	BufferReceptionCounter=((BufferReceptionCounter+1)%BUFFER_RECEPTION_SIZE);
 	HAL_UART_Receive_IT(huart,&data,1);
   }
   Enable_All_INT();

@@ -27,14 +27,15 @@
 #define TIMEOUT_RX 		500			//Timeout for UART reception data
 #define RETRIES 		2			//Retries number for transmit AT commands
 
-#define TIMEDELAY_RESET 10000		//Delay for WIFI device reset
+#define TIMEDELAY_RESET 10000		//Delay for WIFI device reset, 10 seconds
 
 #define NTP_PACKET_SIZE 48
 #define NTP_SEVENTYYEARS 2208988800UL
-#define SIZE_BUFFER_RECEPTION  4000
-
 #define NTP_BUFFERRECEPTION_SIZE 48
 #define NTP_TIME_SIZE 20
+
+#define BUFFER_RECEPTION_SIZE  4000
+#define MAX_PAYLOAD_SIZE 400
 #define HTTP_ARRAY_SIZE 800
 #define HTTP_METHOD_GET "GET"
 //#define HTTP_METHOD_GET_SIZE 3
@@ -48,9 +49,9 @@
 #define CARRIAGE_RETURN "\r"
 #define NEWLINE "\n"
 
-#define MIN_BUFFERRECEPTION_SIZE 	436
-#define MAX_BUFFERRECEPTION_SIZE	588
-#define TIMING_TIMEOUT_UART 		10		// 10 seconds
+#define MIN_BUFFERRECEPTION_SIZE 	350
+#define MAX_BUFFERRECEPTION_SIZE	1000
+#define TIMING_TIMEOUT_UART 		7		// 10 seconds
 
 #define BLOCKTRAIL_RFID	63
 #define BLOCKREAD_RFID	62

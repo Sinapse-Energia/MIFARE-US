@@ -117,7 +117,7 @@
 #define GPIO_PC15 GPIO_PIN_15
 #define GPIO_PC15_GPIO_Port GPIOC
 /* USER CODE END Private defines */
-
+void GPIO_default(void);
 void _Error_Handler(char *, int);
 
 #define Error_Handler() _Error_Handler(__FILE__, __LINE__)
